@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#D85A30">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="매일-스터디">
+<meta name="description" content="가족 강제 학습 앱 — 수학·영어 + 보상 시스템">
+<title>매일-스터디</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+<!-- ════════════════════════════════════════════
+     🔥 Firebase 설정 (아래 값을 교체해주세요!)
+     Firebase Console → 프로젝트 설정 → 앱 추가
+     ════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging.js";
+
+  /* ⚠️ 여기에 Firebase 설정값을 넣으세요! */
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window._db = db;
+  window._firebase = { doc, setDoc, getDoc, onSnapshot, collection };
+  window._firebaseReady = true;
+  console.log('[Firebase] 초기화 완료');
+</script>
+
+<style>
+/* ══════════════════════════════════════
+   전역 스타일
+   ══════════════════════════════════════ */
+:root {
+  --coral:     #D85A30;
+  --coral-l:   #F0997B;
+  --coral-ll:  #FAECE7;
+  --coral-d:   #993C1D;
+  --teal:      #1D9E75;
+  --teal-l:    #5DCAA5;
+  --teal-ll:   #E1F5EE;
+  --teal-d:    #0F6E56;
+  --amber:     #BA7517;
+  --amber-l:   #FAC775;
+  --amber-ll:  #FAEEDA;
+  --red:       #A32D2D;
+  --red-l:     #F7C1C1;
+  --red-ll:    #FCEBEB;
+  --navy:      #2C3E50;
+  --gray:      #888780;
+  --gray-l:    #F5F5F3;
+  --white:     #FFFFFF;
+  --border:    #E0E0DC;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Noto Sans KR', -apple-system, sans-serif;
+  background: var(--gray-l);
+  color: var(--navy);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 앱 컨테이너 */
+#app {
+  max-width: 430px;
+  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(0,0,0,0.12);
+}
+
+/* ── 네비게이션 바 (윈도우식 이전/앞전) ── */
+#nav-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  background: #F8F8F6;
+  border-bottom: 0.5px solid var(--border);
+  padding: 4px 8px;
+  gap: 6px;
+  height: 38px;
+  user-select: none;
+}
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  white-space: nowrap;
+  border: none;
+}
+.nav-btn-on {
+  border: 0.5px solid var(--border);
+  background: var(--white);
+  color: var(--navy);
+}
+.nav-btn-on:hover { background: #F0F0EE; }
+.nav-btn-on:active { transform: scale(0.97); }
+.nav-btn-off {
+  border: 0.5px solid transparent;
+  background: transparent;
+  color: #BDBDBD;
+  cursor: default;
+}
+#nav-crumb {
+  flex: 1;
+  text-align: center;
+  font-size: 10px;
+  color: var(--gray);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+/* ── 화면 스크롤 영역 ── */
+#screen-wrap {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* ── 공통 컴포넌트 ── */
+.screen { animation: fadeUp 0.25s ease both; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes popIn { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes starRise { 0% { transform: translateY(0); opacity: 0.7; } 100% { transform: translateY(-100px); opacity: 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.hdr { padding: 16px 16px 12px; border-bottom: 0.5px solid var(--border); }
+.hdr-coral { background: var(--coral-ll); border-bottom-color: var(--coral-l); }
+.hdr-teal  { background: var(--teal-ll);  border-bottom-color: var(--teal-l);  }
+.hdr-amber { background: var(--amber-ll); border-bottom-color: var(--amber-l); }
+.hdr-red   { background: var(--red-ll);   border-bottom-color: var(--red-l);   }
+
+.card {
+  background: var(--white);
+  border: 0.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.tag {
+  display: inline-block;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.tc { background: var(--coral-ll); color: var(--coral-d); }
+.tt { background: var(--teal-ll);  color: var(--teal-d);  }
+.ta { background: var(--amber-ll); color: var(--amber);    }
+.tr { background: var(--red-ll);   color: var(--red);      }
+
+/* 버튼 */
+.btn { border: none; border-radius: 10px; padding: 13px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; width: 100%; transition: opacity 0.15s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn:active { transform: scale(0.97); opacity: 0.88; }
+.btn-c { background: var(--coral);  color: white; }
+.btn-t { background: var(--teal);   color: white; }
+.btn-r { background: var(--red-ll); color: var(--red); border: 0.5px solid var(--red-l); }
+.btn-g { background: #F0F0EE; color: var(--gray); border: 0.5px solid var(--border); padding: 10px 14px; font-size: 13px; }
+
+/* 인풋 */
+input[type="text"], input[type="password"] {
+  width: 100%;
+  padding: 12px 14px;
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  background: var(--white);
+  color: var(--navy);
+  outline: none;
+  transition: border 0.15s;
+}
+input[type="text"]:focus,
+input[type="password"]:focus { border: 0.5px solid var(--coral); }
+
+/* 프로그레스 바 */
+.pt { background: #EBEBEB; border-radius: 4px; height: 7px; overflow: hidden; }
+.pf { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+
+/* 탭 바 */
+.tab-bar { display: flex; border-bottom: 0.5px solid var(--border); background: var(--white); }
+.tb { flex: 1; padding: 9px 2px 7px; border: none; background: transparent; font-family: inherit; font-size: 10px; font-weight: 500; color: var(--gray); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.tb i { font-size: 17px; }
+.tb.act { color: var(--coral); border-bottom: 2px solid var(--coral); }
+
+/* 채점 버튼 */
+.ob { width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 21px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; border: none; }
+.oon { border: 2px solid var(--teal) !important; background: var(--teal-ll); animation: popIn 0.25s ease; }
+.oof { border: 0.5px solid var(--border) !important; background: var(--white); }
+.xon { border: 2px solid var(--coral) !important; background: var(--coral-ll); animation: popIn 0.25s ease; }
+.xof { border: 0.5px solid var(--border) !important; background: var(--white); }
+
+/* 오답노트 뱃지 */
+.sb { background: var(--teal-ll); color: var(--teal-d); border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 500; }
+.ub { background: var(--red-ll);  color: var(--red);    border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 500; }
+
+/* 잠금 오버레이 */
+#lock-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  padding: 32px 20px;
+}
+#lock-overlay.active { display: flex; }
+</style>
+</head>
+<body>
+
+<!-- ════════════ 앱 컨테이너 ════════════ -->
+<div id="app">
+  <div id="nav-bar">
+    <button id="btn-back" class="nav-btn nav-btn-off" onclick="navBack()" disabled aria-label="이전 화면">
+      <i class="ti ti-arrow-left" style="font-size:13px"></i> 이전
+    </button>
+    <div id="nav-crumb">매일-스터디 홈</div>
+    <button id="btn-fwd" class="nav-btn nav-btn-off" onclick="navForward()" disabled aria-label="앞 화면">
+      앞전 <i class="ti ti-arrow-right" style="font-size:13px"></i>
+    </button>
+  </div>
+  <div id="screen-wrap"></div>
+</div>
+
+<!-- ════════════ 학습 잠금 오버레이 ════════════ -->
+<div id="lock-overlay">
+  <i class="ti ti-lock" style="font-size:48px;margin-bottom:12px;color:#F0997B"></i>
+  <div style="font-size:20px;font-weight:900;margin-bottom:8px">📚 학습 시간이에요!</div>
+  <div style="font-size:14px;opacity:0.8;margin-bottom:24px">관리자가 설정한 학습 시간입니다</div>
+  <button onclick="dismissLock()" style="background:#D85A30;color:white;border:none;border-radius:12px;padding:14px 32px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
+    지금 공부하기 →
+  </button>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   매일-스터디 앱 메인 스크립트
+   ════════════════════════════════════════════════════════ */
+
+/* ── 데이터 상수 ── */
+const QUOTES = [
+  { text: "천 리 길도 한 걸음부터.", sub: "오늘 이 한 걸음이 미래를 바꿔!", author: "노자", icon: "ti-seedling" },
+  { text: "공부는 절대 배신하지 않아!", sub: "지금 열심히 하는 하은이가 최고야!", author: "격언", icon: "ti-book" },
+  { text: "어제보다 나은 오늘의 하은이!", sub: "조금씩 자라는 게 가장 대단한 거야!", author: "아빠 용국", icon: "ti-heart" },
+  { text: "꿈을 향해 한 발짝씩!", sub: "포기하지 마, 엄마가 항상 응원해!", author: "엄마 은경", icon: "ti-flower" },
+  { text: "틀려도 괜찮아, 다시 하면 돼!", sub: "포기하지 않는 하은이가 진짜 멋있어!", author: "격언", icon: "ti-refresh" },
+  { text: "오늘 힘들어야 내일이 편해!", sub: "지금의 노력이 빛나는 미래를 만들어!", author: "격언", icon: "ti-flame" },
+  { text: "공부한 만큼 커지는 꿈!", sub: "오늘도 최선을 다하는 하은이 파이팅!", author: "매일-스터디", icon: "ti-trophy" },
+];
+
+/* ── 수학 문제 은행 (중1) ── */
+const MATH_PROBLEMS = [
+  /* 정수와 유리수 */
+  { id: 101, grade: "중1", unit: "정수와 유리수", diff: "하", q: "다음을 계산하시오\n(-3) + (-5) = □", ans: "-8", hints: ["음수끼리는 절댓값을 더하고 (-)를 붙여요", "3+5=8, 그러면 부호는?", "정답은 -8이에요!"], exp: "음수+음수: -(|a|+|b|)=-(3+5)=-8" },
+  { id: 102, grade: "중1", unit: "정수와 유리수", diff: "하", q: "다음을 계산하시오\n4 × (-3) = □", ans: "-12", hints: ["양수×음수 = 반드시 음수!", "4×3=12, 그러면 부호는?", "정답은 -12예요!"], exp: "(양수)×(음수)=음수, 4×3=12 → -12" },
+  { id: 103, grade: "중1", unit: "정수와 유리수", diff: "중", q: "다음을 계산하시오\n(-2) × (-4) = □", ans: "8", hints: ["음수×음수 = 양수예요!", "2×4=8, 부호는?", "정답은 8이에요!"], exp: "(음수)×(음수)=양수, 2×4=8 → +8" },
+  /* 문자와 식 */
+  { id: 201, grade: "중1", unit: "문자와 식", diff: "중", q: "다음 식을 간단히 하시오\n3x + 2x - x = □", ans: "4x", hints: ["x가 붙은 계수끼리만 더하고 빼요", "3+2-1=?", "정답은 4x예요!"], exp: "동류항: (3+2-1)x=4x" },
+  { id: 202, grade: "중1", unit: "문자와 식", diff: "하", q: "다음 식을 간단히 하시오\n5a - 2a = □", ans: "3a", hints: ["a가 붙은 계수끼리만 빼요", "5-2=?", "정답은 3a예요!"], exp: "(5-2)a=3a" },
+  /* 일차방정식 */
+  { id: 301, grade: "중1", unit: "일차방정식", diff: "중", q: "방정식을 푸시오\n2x + 3 = 11\nx = □", ans: "4", hints: ["양쪽에서 3을 빼보세요", "2x=8, 양쪽을 2로 나눠요", "x=4예요!"], exp: "2x+3=11 → 2x=8 → x=4" },
+  { id: 302, grade: "중1", unit: "일차방정식", diff: "상", q: "방정식을 푸시오\n3x - 7 = 2x + 1\nx = □", ans: "8", hints: ["x항을 왼쪽, 숫자를 오른쪽으로", "3x-2x = 1+7", "x=8이에요!"], exp: "3x-2x=1+7 → x=8" },
+  /* 비와 비율 */
+  { id: 401, grade: "중1", unit: "비와 비율", diff: "하", q: "가장 간단한 비로 나타내시오\n6 : 4 = □", ans: "3:2", hints: ["6과 4의 최대공약수를 찾아요", "최대공약수는 2예요", "6÷2 : 4÷2 = 3:2"], exp: "최대공약수(2): 6÷2=3, 4÷2=2 → 3:2" },
+];
+
+/* ── 영어 단어장 ── */
+const ENG_WORDS = [
+  { word: "beautiful", meaning: "아름다운", example: "She is beautiful." },
+  { word: "study", meaning: "공부하다", example: "I study every day." },
+  { word: "knowledge", meaning: "지식", example: "Knowledge is power." },
+  { word: "important", meaning: "중요한", example: "Education is important." },
+  { word: "challenge", meaning: "도전", example: "Don't give up the challenge." },
+  { word: "success", meaning: "성공", example: "Hard work leads to success." },
+  { word: "dream", meaning: "꿈", example: "Follow your dream." },
+  { word: "effort", meaning: "노력", example: "Your effort will pay off." },
+  { word: "future", meaning: "미래", example: "Study for your future." },
+  { word: "practice", meaning: "연습하다", example: "Practice makes perfect." },
+];
+
+/* ── 보상 목록 기본값 ── */
+const DEFAULT_REWARDS = [
+  { id: 1, name: "에어팟 프로", price: 200000, icon: "ti-headphones" },
+  { id: 2, name: "치킨 파티", price: 20000, icon: "ti-tools-kitchen-2" },
+  { id: 3, name: "영화 관람권", price: 15000, icon: "ti-movie" },
+];
+
+/* ── 앱 상태 (LocalStorage에 자동 저장/복원) ── */
+function loadState() {
+  try {
+    const saved = localStorage.getItem('maeil-study-state');
+    return saved ? JSON.parse(saved) : null;
+  } catch { return null; }
+}
+function saveState() {
+  try { localStorage.setItem('maeil-study-state', JSON.stringify(S)); } catch {}
+}
+
+const defaultState = {
+  screen: 'login', user: null,
+  qIdx: 0, qTimer: null,
+  answers: {}, hintLevel: {}, graded: {},
+  rIds: [], rAnswers: {}, rHints: {}, rGraded: {},
+  credits: 0, adminTab: 'dash',
+  curP: 0, curR: 0,
+  odapNote: [], round: 1, firstCorrect: 0,
+  rewards: DEFAULT_REWARDS,
+  creditPerQ: 500,
+  schedules: [
+    { id: 1, time: '19:00', label: '저녁 7시', subj: '수학', count: 5, days: '매일', diff: '중', active: true },
+    { id: 2, time: '21:00', label: '밤 9시',  subj: '수학', count: 5, days: '평일', diff: '하', active: true },
+  ],
+  adminPassword: '1234', /* ⚠️ 앱 설치 후 반드시 변경하세요! */
+};
+
+let S = loadState() || { ...defaultState };
+
+/* ══ 네비게이션 히스토리 시스템 (윈도우식) ══ */
+let NH = ['login'], NP = 0;
+
+const SCREEN_TITLES = {
+  login: '매일-스터디 홈', motivational: '학습 명언', study: '1차 학습 중',
+  waiting: '채점 대기 중', adminGrade: '관리자 채점 1차', retry: '재도전 학습',
+  retryWaiting: '재채점 대기', adminRetryGrade: '관리자 재채점', approved: '학습 완료 ✓',
+  studentHome: '하은이 홈', admin: '관리자 홈',
+};
+
+try { window.history.replaceState({ p: 0 }, ''); } catch {}
+
+function go(s) {
+  NH = NH.slice(0, NP + 1);
+  NH.push(s);
+  NP = NH.length - 1;
+  S.screen = s;
+  saveState();
+  try { window.history.pushState({ p: NP }, ''); } catch {}
+  render();
+}
+
+function navBack() {
+  if (NP > 0) { NP--; S.screen = NH[NP]; render(); }
+}
+
+function navForward() {
+  if (NP < NH.length - 1) { NP++; S.screen = NH[NP]; render(); }
+}
+
+/* 안드로이드 물리 뒤로가기 버튼 */
+window.addEventListener('popstate', function () {
+  if (NP > 0) { NP--; S.screen = NH[NP]; render(); }
+  else { try { window.history.pushState({ p: 0 }, ''); } catch {} }
+});
+
+function updateNavBar() {
+  const canB = NP > 0, canF = NP < NH.length - 1;
+  const backBtn = document.getElementById('btn-back');
+  const fwdBtn  = document.getElementById('btn-fwd');
+  const crumb   = document.getElementById('nav-crumb');
+  if (!backBtn) return;
+
+  backBtn.className = 'nav-btn ' + (canB ? 'nav-btn-on' : 'nav-btn-off');
+  backBtn.disabled  = !canB;
+  fwdBtn.className  = 'nav-btn ' + (canF ? 'nav-btn-on' : 'nav-btn-off');
+  fwdBtn.disabled   = !canF;
+
+  /* 경로 빵부스러기 (현재 + 이전 최대 2개) */
+  const crumbItems = NH.slice(Math.max(0, NP - 2), NP + 1)
+    .map((s, i, arr) => {
+      const isLast = i === arr.length - 1;
+      return `<span style="color:${isLast ? '#2C3E50' : '#888780'};font-weight:${isLast ? '500' : '400'}">${SCREEN_TITLES[s] || s}</span>`;
+    }).join('<span style="margin:0 3px;color:#BDBDBD">›</span>');
+  crumb.innerHTML = crumbItems;
+}
+
+/* ══ 잠금 해제 코드 처리 ══ */
+let lockPending = false;
+function dismissLock() {
+  document.getElementById('lock-overlay').classList.remove('active');
+  go('motivational');
+}
+
+/* ══ 알림 권한 요청 ══ */
+async function requestNotifications() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') {
+    await Notification.requestPermission();
+  }
+}
+
+/* ══ 예약 알림 설정 ══ */
+function scheduleNotification(timeStr, message) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+  let ms = target - now;
+  if (ms < 0) ms += 86400000; /* 내일로 */
+
+  setTimeout(() => {
+    if (Notification.permission === 'granted') {
+      new Notification('📚 매일-스터디', {
+        body: message,
+        icon: './icons/icon-192.png',
+        vibrate: [200, 100, 200],
+        tag: 'study-time',
+      });
+    }
+    document.getElementById('lock-overlay').classList.add('active');
+  }, ms);
+}
+
+/* ════════════════════════════════════════
+   화면 렌더링 함수들
+   ════════════════════════════════════════ */
+function render() {
+  updateNavBar();
+  const screens = {
+    login: screenLogin, motivational: screenMotivational, study: screenStudy,
+    waiting: screenWaiting, adminGrade: screenAdminGrade, retry: screenRetry,
+    retryWaiting: screenRetryWaiting, adminRetryGrade: screenAdminRetryGrade,
+    approved: screenApproved, studentHome: screenStudentHome, admin: screenAdmin,
+  };
+  const sw = document.getElementById('screen-wrap');
+  const fn = screens[S.screen];
+  sw.innerHTML = fn ? fn() : '<div style="padding:40px;text-align:center;color:#888">화면을 찾을 수 없어요</div>';
+  sw.scrollTop = 0;
+}
+
+/* ── 로그인 화면 ── */
+function screenLogin() {
+  const members = [
+    { n: '용국', r: 'admin', sub: '아빠 · 관리자', i: 'ti-user-circle', c: 'var(--teal)',  bg: 'var(--teal-ll)' },
+    { n: '은경', r: 'admin', sub: '엄마 · 관리자', i: 'ti-user-heart', c: 'var(--coral)', bg: 'var(--coral-ll)' },
+    { n: '하은', r: 'student', sub: '딸 · 학생', i: 'ti-star', c: 'var(--amber)', bg: 'var(--amber-ll)' },
+  ];
+  return `
+  <div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;background:#FAFAF8">
+    <div style="text-align:center;margin-bottom:28px">
+      <i class="ti ti-book-2" style="font-size:48px;color:var(--coral);display:block;margin-bottom:8px;animation:floatY 3s ease-in-out infinite"></i>
+      <div style="font-size:24px;font-weight:900;color:var(--navy)">매일<span style="color:var(--teal)">-</span>스터디</div>
+      <div style="font-size:12px;color:var(--gray);margin-top:4px">가족을 선택하세요</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px">
+      ${members.map((m, idx) => `
+        <button onclick="loginAs('${m.n}','${m.r}')" style="background:${m.bg};border:0.5px solid ${m.c};border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;width:100%;font-family:inherit;animation:fadeUp 0.35s ease ${idx*0.08}s both">
+          <i class="ti ${m.i}" style="font-size:24px;color:${m.c};flex-shrink:0"></i>
+          <div style="text-align:left;flex:1">
+            <div style="font-size:16px;font-weight:700;color:${m.c}">${m.n}</div>
+            <div style="font-size:11px;color:var(--gray)">${m.sub}</div>
+          </div>
+          <i class="ti ti-chevron-right" style="color:${m.c};font-size:15px"></i>
+        </button>`).join('')}
+    </div>
+    <div style="margin-top:22px;font-size:11px;color:var(--gray)">
+      <i class="ti ti-star"></i> 오늘도 열심히 공부해요! <i class="ti ti-star"></i>
+    </div>
+  </div>`;
+}
+
+/* ── 명언 화면 ── */
+function screenMotivational() {
+  const q = QUOTES[S.qIdx];
+  const dots = QUOTES.map((_, i) => `<span style="display:inline-block;width:${i===S.qIdx?'16px':'5px'};height:5px;border-radius:3px;background:${i===S.qIdx?'var(--coral)':'var(--coral-l)'};margin:0 2px;transition:all .3s"></span>`).join('');
+  const stars = [0,1,2,3,4].map(i => `<span style="position:absolute;left:${8+i*18}%;bottom:-8px;font-size:${11+i%3*4}px;animation:starRise ${2+i*.5}s ${i*.3}s ease-in infinite;opacity:.4">${['✦','✧','❋','✿','★'][i]}</span>`).join('');
+
+  /* 명언 자동 순환 */
+  if (!window._qTimer) {
+    window._qTimer = setInterval(() => {
+      S.qIdx = (S.qIdx + 1) % QUOTES.length;
+      const el = document.getElementById('qi');
+      if (el) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = 'fadeUp .4s ease'; el.innerHTML = buildQuoteInner(); }
+    }, 6000);
+  }
+
+  return `
+  <div class="screen" style="background:var(--coral-ll);min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 18px;position:relative;overflow:hidden">
+    ${stars}
+    <div style="position:absolute;top:-50px;right:-50px;width:150px;height:150px;border-radius:50%;background:var(--coral-l);opacity:.15"></div>
+    <div id="qc" class="card" style="width:100%;max-width:360px;padding:24px 20px;position:relative;z-index:2;border-color:var(--coral-l)">
+      <div id="qi">${buildQuoteInner()}</div>
+    </div>
+    <p style="margin-top:16px;font-size:11px;color:var(--coral-d);font-weight:500;position:relative;z-index:2">
+      <i class="ti ti-heart"></i> 하은이를 항상 응원해! <i class="ti ti-heart"></i>
+    </p>
+  </div>`;
+}
+
+function buildQuoteInner() {
+  const q = QUOTES[S.qIdx];
+  const dots = QUOTES.map((_, i) => `<span style="display:inline-block;width:${i===S.qIdx?'16px':'5px'};height:5px;border-radius:3px;background:${i===S.qIdx?'var(--coral)':'var(--coral-l)'};margin:0 2px"></span>`).join('');
+  return `
+    <i class="ti ${q.icon}" style="font-size:44px;color:var(--coral);display:block;text-align:center;margin-bottom:12px;animation:floatY 2.5s ease-in-out infinite"></i>
+    <div class="tag tc" style="display:block;text-align:center;margin-bottom:12px"><i class="ti ti-lock"></i> 오늘 · 수학 5문제 · 중1 · 난이도 하</div>
+    <blockquote style="font-size:20px;font-weight:900;color:var(--navy);line-height:1.45;text-align:center;margin-bottom:8px;word-break:keep-all">"${q.text}"</blockquote>
+    <p style="font-size:13px;color:var(--coral);font-weight:500;text-align:center;margin-bottom:4px">${q.sub}</p>
+    <p style="font-size:11px;color:var(--gray);text-align:center;margin-bottom:18px">— ${q.author}</p>
+    <div style="text-align:center;margin-bottom:18px">${dots}</div>
+    <button class="btn btn-c" onclick="startStudy()"><i class="ti ti-bolt"></i> 공부 시작하기!</button>
+    <button class="btn btn-g" onclick="go('studentHome')" style="margin-top:8px">홈으로 가기</button>`;
+}
+
+/* ── 학습 화면 ── */
+function screenStudy() {
+  const problems = getStudyProblems();
+  const p = problems[S.curP];
+  if (!p) return '<div style="padding:40px;text-align:center">문제를 불러오는 중...</div>';
+  const allDone = problems.every(pr => S.answers[pr.id] && S.answers[pr.id].trim());
+  const hl = S.hintLevel[p.id] || 0;
+  return `
+  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
+    <div class="hdr hdr-coral">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:14px;font-weight:700;color:var(--coral-d)"><i class="ti ti-lock"></i> 학습 중 · 1차</div>
+        <div class="tag tc">${S.curP+1} / ${problems.length}</div>
+      </div>
+      <div class="pt"><div class="pf" style="width:${((S.curP+1)/problems.length)*100}%;background:var(--coral)"></div></div>
+    </div>
+    <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px">
+      <div class="card">
+        <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap">
+          <span class="tag tt">${p.unit}</span><span class="tag ta">난이도 ${p.diff}</span>
+        </div>
+        <div style="background:#F8F8F6;border-radius:10px;padding:12px;margin-bottom:10px;white-space:pre-line;font-size:17px;font-weight:500;color:var(--navy);line-height:1.6">
+          <i class="ti ti-pencil" style="color:var(--coral)"></i>  ${p.q}
+        </div>
+        <label style="font-size:11px;color:var(--gray);display:block;margin-bottom:5px">✏️ 내 답안</label>
+        <input type="text" id="ans_${p.id}" value="${S.answers[p.id]||''}" placeholder="답을 입력하세요" 
+               oninput="S.answers[${p.id}]=this.value" onchange="saveState()">
+        ${S.answers[p.id] ? '<p style="font-size:10px;color:var(--teal);margin-top:3px"><i class="ti ti-check"></i> 저장됨</p>' : ''}
+      </div>
+      <div class="card">
+        <button onclick="useHint(${p.id})" ${hl>=3?'disabled':''} 
+                style="background:${hl<3?'var(--amber-ll)':'#F0F0EE'};color:${hl<3?'var(--amber)':'var(--gray)'};border:0.5px dashed ${hl<3?'var(--amber-l)':'var(--border)'};border-radius:10px;padding:9px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;width:100%">
+          <i class="ti ti-bulb"></i>  힌트 보기 (${hl}/3회)
+        </button>
+        ${hl > 0 ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
+          ${p.hints.slice(0,hl).map(h => `<div style="background:#F8F8F6;border-radius:8px;padding:8px 10px;font-size:12px;color:var(--navy)">${h}</div>`).join('')}
+        </div>` : ''}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-g" onclick="S.curP=Math.max(0,S.curP-1);render()" ${S.curP===0?'disabled':''} style="flex:1;padding:10px">
+          <i class="ti ti-arrow-left"></i> 이전
+        </button>
+        <button onclick="S.curP=Math.min(${problems.length-1},S.curP+1);render()" ${S.curP===problems.length-1?'disabled':''}
+                style="flex:1;background:${S.curP===problems.length-1?'#F0F0EE':'var(--teal)'};color:${S.curP===problems.length-1?'var(--gray)':'white'};border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px">
+          다음 <i class="ti ti-arrow-right"></i>
+        </button>
+      </div>
+      <div style="display:flex;gap:5px;justify-content:center">
+        ${problems.map((pr, i) => `<button onclick="S.curP=${i};render()" 
+          style="width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;
+                 background:${i===S.curP?'var(--coral)':S.answers[pr.id]?'var(--teal)':'#EBEBEB'};
+                 color:${(i===S.curP||S.answers[pr.id])?'white':'var(--gray)'}">${i+1}</button>`).join('')}
+      </div>
+      ${allDone
+        ? `<button class="btn btn-c" onclick="go('waiting')" style="animation:pulse 2s infinite"><i class="ti ti-send"></i> 답안 제출하기!</button>`
+        : `<p style="text-align:center;font-size:11px;color:var(--gray);padding:6px">모든 답안 입력 후 제출 (${Object.values(S.answers).filter(v=>v&&v.trim()).length}/${problems.length})</p>`}
+    </div>
+  </div>`;
+}
+
+function getStudyProblems() { return MATH_PROBLEMS.slice(0, 5); }
+
+/* ── 채점 대기 화면 ── */
+function screenWaiting() {
+  return `
+  <div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;background:#FAFAF8">
+    <i class="ti ti-hourglass" style="font-size:56px;color:var(--coral);animation:floatY 2s ease-in-out infinite;margin-bottom:16px"></i>
+    <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px">답안 제출 완료!</div>
+    <div style="font-size:13px;color:var(--gray);margin-bottom:24px">아빠 / 엄마가 채점 중이에요...</div>
+    <div style="display:flex;gap:8px;margin-bottom:32px">
+      ${[0,1,2].map(i => `<div style="width:10px;height:10px;border-radius:50%;background:var(--coral);animation:pulse 1.2s ${i*.2}s ease-in-out infinite"></div>`).join('')}
+    </div>
+    <div class="card" style="max-width:290px;text-align:center;padding:14px">
+      <p style="font-size:10px;color:var(--gray);margin-bottom:8px">관리자가 채점 버튼을 받았어요</p>
+      <button class="btn btn-t" onclick="go('adminGrade')"><i class="ti ti-clipboard-check"></i> 관리자 채점 (데모)</button>
+    </div>
+  </div>`;
+}
+
+/* ── 관리자 1차 채점 ── */
+function screenAdminGrade() {
+  const problems = getStudyProblems();
+  const allGraded = problems.every(p => S.graded[p.id] !== undefined);
+  const correctIds = problems.filter(p => S.graded[p.id] === true).map(p => p.id);
+  const wrongIds   = problems.filter(p => S.graded[p.id] === false).map(p => p.id);
+  const allCorrect = allGraded && wrongIds.length === 0;
+  const hasWrong   = allGraded && wrongIds.length > 0;
+
+  return `
+  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
+    <div class="hdr hdr-teal">
+      <div style="font-size:15px;font-weight:700;color:var(--teal-d)"><i class="ti ti-clipboard-check"></i> 하은이 답안 채점 · 1차</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:2px">각 문제 확인 후 ⭕ / ❌ 를 눌러주세요</div>
+    </div>
+    <div style="display:flex;border-bottom:0.5px solid var(--border)">
+      <div style="flex:1;padding:10px;text-align:center;border-right:0.5px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--teal)">${correctIds.length}</div><div style="font-size:10px;color:var(--gray)">정답</div></div>
+      <div style="flex:1;padding:10px;text-align:center;border-right:0.5px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--coral)">${wrongIds.length}</div><div style="font-size:10px;color:var(--gray)">오답</div></div>
+      <div style="flex:1;padding:10px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--teal)">+${(correctIds.length*S.creditPerQ).toLocaleString()}원</div><div style="font-size:10px;color:var(--gray)">적립예정</div></div>
+    </div>
+    <div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px">
+      ${problems.map(p => {
+        const g = S.graded[p.id]; const isC = g===true; const isW = g===false;
+        return `
+        <div class="card" style="border-color:${isC?'var(--teal-l)':isW?'var(--coral-l)':'var(--border)'}">
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <div style="flex:1">
+              <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
+                <span class="tag tt" style="font-size:10px">${p.unit}</span>
+                <span class="tag ta" style="font-size:10px">난이도 ${p.diff}</span>
+              </div>
+              <div style="font-size:12px;color:var(--navy);white-space:pre-line;margin-bottom:8px;font-weight:500">${p.q}</div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px">
+                <div><span style="color:var(--gray)">하은 답: </span><span style="font-size:15px;font-weight:700;color:${isW?'var(--coral)':isC?'var(--teal)':'var(--navy)'}">${S.answers[p.id]||'?'}</span></div>
+                <div><span style="color:var(--gray)">정답: </span><span style="font-weight:700;color:var(--teal)">${p.ans}</span></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+              <button onclick="S.graded[${p.id}]=true;saveState();render()" class="ob ${isC?'oon':'oof'}">⭕</button>
+              <button onclick="S.graded[${p.id}]=false;saveState();render()" class="ob ${isW?'xon':'xof'}">❌</button>
+            </div>
+          </div>
+          <div style="background:#F8F8F6;border-radius:8px;padding:7px 10px;margin-top:8px;font-size:11px;color:var(--gray)">
+            <i class="ti ti-notes"></i> ${p.exp}
+          </div>
+          ${isW ? `<div style="margin-top:7px;padding:7px 10px;background:var(--red-ll);border-radius:8px;border-left:3px solid var(--red-l);font-size:11px;color:var(--red);font-weight:500">
+            <i class="ti ti-arrow-back-up"></i> 오답노트 저장 후 재도전 예정
+          </div>` : ''}
+        </div>`;
+      }).join('')}
+
+      ${allCorrect ? `
+        <div style="background:var(--teal-ll);border-radius:14px;padding:14px;text-align:center;border:0.5px solid var(--teal-l)">
+          <i class="ti ti-circle-check" style="font-size:28px;color:var(--teal);display:block;margin-bottom:6px"></i>
+          <div style="font-size:14px;font-weight:700;color:var(--teal-d);margin-bottom:3px">모두 정답이에요! 🎉</div>
+          <div style="font-size:12px;color:var(--gray)">승인 후 핸드폰 잠금이 해제돼요</div>
+        </div>
+        <button class="btn btn-t" onclick="doApprove()"><i class="ti ti-lock-open"></i> ✅ 승인 · 핸드폰 잠금 해제!</button>`
+      : hasWrong ? `
+        <div style="background:var(--red-ll);border-radius:14px;padding:14px;border:0.5px solid var(--red-l)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <i class="ti ti-alert-circle" style="font-size:22px;color:var(--coral);flex-shrink:0"></i>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--coral-d)">오답 ${wrongIds.length}개 발견!</div>
+              <div style="font-size:11px;color:var(--gray)">오답노트 저장 후 하은이가 다시 풀어요</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
+            ${wrongIds.map(id => { const p = getStudyProblems().find(pr=>pr.id===id); return `<span class="tag tr" style="font-size:10px"><i class="ti ti-x" style="font-size:9px"></i> ${p?p.unit:id}</span>`; }).join('')}
+          </div>
+          <button class="btn btn-r" onclick="doReturn()"><i class="ti ti-arrow-back-up"></i> 🔄 오답 리턴 · 하은이에게 재도전 요청</button>
+        </div>`
+      : `<p style="text-align:center;font-size:12px;color:var(--gray);padding:10px">채점 진행 중... (${Object.keys(S.graded).length}/${problems.length})</p>`}
+    </div>
+  </div>`;
+}
+
+/* ── 재도전 화면 ── */
+function screenRetry() {
+  const rProblems = getStudyProblems().filter(p => S.rIds.includes(p.id));
+  if (!rProblems.length) return '<div style="padding:40px;text-align:center">재도전 문제 없음</div>';
+  const p = rProblems[S.curR];
+  const allDone = rProblems.every(pr => S.rAnswers[pr.id] && S.rAnswers[pr.id].trim());
+  const hl = S.rHints[p.id] || 0;
+  const note = S.odapNote.find(n => n.id === p.id);
+  return `
+  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
+    <div class="hdr hdr-red">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--red)"><i class="ti ti-refresh"></i> 재도전! ${S.round}차</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:1px">오답 ${rProblems.length}문제 다시 풀어요</div>
+        </div>
+        <div class="tag tr">${S.curR+1} / ${rProblems.length}</div>
+      </div>
+      <div class="pt"><div class="pf" style="width:${((S.curR+1)/rProblems.length)*100}%;background:var(--coral)"></div></div>
+    </div>
+    <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px">
+      <div style="background:var(--amber-ll);border:0.5px solid var(--amber-l);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--amber)">
+        <i class="ti ti-bulb"></i> 틀려도 괜찮아! 다시 도전하면 돼!
+      </div>
+      <div class="card">
+        <div style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap">
+          <span class="tag tt">${p.unit}</span>
+          <span class="tag tr" style="font-size:10px"><i class="ti ti-refresh"></i> 재도전</span>
+        </div>
+        <div style="background:#F8F8F6;border-radius:10px;padding:12px;margin-bottom:10px;white-space:pre-line;font-size:17px;font-weight:500;color:var(--navy);line-height:1.6">
+          <i class="ti ti-pencil" style="color:var(--coral)"></i>  ${p.q}
+        </div>
+        ${note ? `<div style="background:var(--red-ll);border-radius:8px;padding:7px 10px;margin-bottom:10px;font-size:12px;color:var(--red);border-left:3px solid var(--red-l)">
+          <span style="color:var(--gray)">이전에 틀린 답: </span><strong style="text-decoration:line-through">${note.wrongAns}</strong> ❌ → 이번엔 제대로!
+        </div>` : ''}
+        <label style="font-size:11px;color:var(--gray);display:block;margin-bottom:5px">✏️ 새 답안</label>
+        <input type="text" id="rans_${p.id}" value="${S.rAnswers[p.id]||''}" placeholder="다시 답을 입력하세요"
+               oninput="S.rAnswers[${p.id}]=this.value" onchange="saveState()">
+        ${S.rAnswers[p.id] ? '<p style="font-size:10px;color:var(--teal);margin-top:3px"><i class="ti ti-check"></i> 저장됨</p>' : ''}
+      </div>
+      <div class="card">
+        <button onclick="useRHint(${p.id})" ${hl>=3?'disabled':''}
+                style="background:${hl<3?'var(--amber-ll)':'#F0F0EE'};color:${hl<3?'var(--amber)':'var(--gray)'};border:0.5px dashed ${hl<3?'var(--amber-l)':'var(--border)'};border-radius:10px;padding:9px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;width:100%">
+          <i class="ti ti-bulb"></i>  힌트 (${hl}/3회)
+        </button>
+        ${hl > 0 ? `<div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">
+          ${p.hints.slice(0,hl).map(h=>`<div style="background:#F8F8F6;border-radius:8px;padding:8px 10px;font-size:12px">${h}</div>`).join('')}
+        </div>` : ''}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-g" onclick="S.curR=Math.max(0,S.curR-1);render()" ${S.curR===0?'disabled':''} style="flex:1;padding:10px">
+          <i class="ti ti-arrow-left"></i> 이전
+        </button>
+        <button onclick="S.curR=Math.min(${rProblems.length-1},S.curR+1);render()" ${S.curR===rProblems.length-1?'disabled':''}
+                style="flex:1;background:${S.curR===rProblems.length-1?'#F0F0EE':'var(--coral)'};color:${S.curR===rProblems.length-1?'var(--gray)':'white'};border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px">
+          다음 <i class="ti ti-arrow-right"></i>
+        </button>
+      </div>
+      <div style="display:flex;gap:5px;justify-content:center">
+        ${rProblems.map((pr,i) => `<button onclick="S.curR=${i};render()" style="width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;background:${i===S.curR?'var(--coral)':S.rAnswers[pr.id]?'var(--teal)':'#EBEBEB'};color:${(i===S.curR||S.rAnswers[pr.id])?'white':'var(--gray)'}">${i+1}</button>`).join('')}
+      </div>
+      ${allDone
+        ? `<button class="btn btn-r" onclick="go('retryWaiting')" style="animation:pulse 2s infinite"><i class="ti ti-send"></i> 재도전 답안 제출!</button>`
+        : `<p style="text-align:center;font-size:11px;color:var(--gray);padding:6px">오답 전부 입력 후 제출 (${Object.values(S.rAnswers).filter(v=>v&&v.trim()).length}/${rProblems.length})</p>`}
+    </div>
+  </div>`;
+}
+
+/* ── 재채점 대기 ── */
+function screenRetryWaiting() {
+  return `
+  <div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;background:#FAFAF8">
+    <i class="ti ti-hourglass" style="font-size:56px;color:var(--coral);animation:floatY 2s ease-in-out infinite;margin-bottom:16px"></i>
+    <div class="tag tr" style="margin-bottom:12px"><i class="ti ti-refresh"></i> ${S.round}차 재도전 제출!</div>
+    <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px">재도전 답안 제출 완료!</div>
+    <div style="font-size:13px;color:var(--gray);margin-bottom:24px">이번엔 다 맞았을 거야! 😊</div>
+    <div style="display:flex;gap:8px;margin-bottom:32px">
+      ${[0,1,2].map(i=>`<div style="width:10px;height:10px;border-radius:50%;background:var(--coral);animation:pulse 1.2s ${i*.2}s ease-in-out infinite"></div>`).join('')}
+    </div>
+    <div class="card" style="max-width:290px;text-align:center;padding:14px">
+      <p style="font-size:10px;color:var(--gray);margin-bottom:8px">관리자 재채점 (데모)</p>
+      <button class="btn btn-t" onclick="go('adminRetryGrade')"><i class="ti ti-clipboard-check"></i> 관리자 재채점 화면으로</button>
+    </div>
+  </div>`;
+}
+
+/* ── 관리자 재채점 ── */
+function screenAdminRetryGrade() {
+  const rProblems = getStudyProblems().filter(p => S.rIds.includes(p.id));
+  const allGraded = rProblems.every(p => S.rGraded[p.id] !== undefined);
+  const correctIds = rProblems.filter(p => S.rGraded[p.id] === true).map(p=>p.id);
+  const wrongIds   = rProblems.filter(p => S.rGraded[p.id] === false).map(p=>p.id);
+  const allCorrect = allGraded && wrongIds.length === 0;
+  const hasWrong   = allGraded && wrongIds.length > 0;
+
+  return `
+  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
+    <div class="hdr hdr-red">
+      <div style="font-size:15px;font-weight:700;color:var(--red)"><i class="ti ti-clipboard-check"></i> 재도전 채점 · ${S.round}차</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:2px">이전 오답과 새 답을 비교해요</div>
+    </div>
+    <div style="display:flex;border-bottom:0.5px solid var(--border)">
+      <div style="flex:1;padding:10px;text-align:center;border-right:0.5px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--teal)">${correctIds.length}</div><div style="font-size:10px;color:var(--gray)">정답</div></div>
+      <div style="flex:1;padding:10px;text-align:center;border-right:0.5px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--coral)">${wrongIds.length}</div><div style="font-size:10px;color:var(--gray)">오답</div></div>
+      <div style="flex:1;padding:10px;text-align:center"><div style="font-size:12px;font-weight:700;color:var(--teal)">총 ${S.firstCorrect+correctIds.length}/${getStudyProblems().length}</div><div style="font-size:10px;color:var(--gray)">최종 정답</div></div>
+    </div>
+    <div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px">
+      ${rProblems.map(p => {
+        const g = S.rGraded[p.id]; const isC=g===true; const isW=g===false;
+        const note = S.odapNote.find(n=>n.id===p.id);
+        return `
+        <div class="card" style="border-color:${isC?'var(--teal-l)':isW?'var(--coral-l)':'var(--border)'}">
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <div style="flex:1">
+              <div style="display:flex;gap:4px;margin-bottom:7px;flex-wrap:wrap">
+                <span class="tag tr" style="font-size:10px"><i class="ti ti-refresh"></i> ${S.round}차</span>
+                <span class="tag tt" style="font-size:10px">${p.unit}</span>
+              </div>
+              <div style="font-size:12px;color:var(--navy);white-space:pre-line;margin-bottom:8px;font-weight:500">${p.q}</div>
+              <div style="display:flex;flex-direction:column;gap:3px;font-size:11px">
+                ${note?`<div><span style="color:var(--gray)">이전 틀린 답: </span><span style="color:var(--coral);text-decoration:line-through">${note.wrongAns}</span> ❌</div>`:''}
+                <div><span style="color:var(--gray)">새로운 답: </span><span style="font-size:15px;font-weight:700;color:${isC?'var(--teal)':isW?'var(--coral)':'var(--navy)'}">${S.rAnswers[p.id]||'?'}</span></div>
+                <div><span style="color:var(--gray)">정답: </span><span style="font-weight:700;color:var(--teal)">${p.ans}</span></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+              <button onclick="S.rGraded[${p.id}]=true;saveState();render()" class="ob ${isC?'oon':'oof'}">⭕</button>
+              <button onclick="S.rGraded[${p.id}]=false;saveState();render()" class="ob ${isW?'xon':'xof'}">❌</button>
+            </div>
+          </div>
+          <div style="background:#F8F8F6;border-radius:8px;padding:7px 10px;margin-top:8px;font-size:11px;color:var(--gray)">
+            <i class="ti ti-notes"></i> ${p.exp}
+          </div>
+        </div>`;
+      }).join('')}
+      ${allCorrect ? `
+        <div style="background:var(--teal-ll);border-radius:14px;padding:14px;text-align:center;border:0.5px solid var(--teal-l)">
+          <i class="ti ti-circle-check" style="font-size:28px;color:var(--teal);display:block;margin-bottom:6px"></i>
+          <div style="font-size:14px;font-weight:700;color:var(--teal-d);margin-bottom:3px">재도전 전부 정답! 🎉</div>
+          <div style="font-size:12px;color:var(--gray)">최종 ${S.firstCorrect+correctIds.length}/${getStudyProblems().length}문제 정답!</div>
+        </div>
+        <button class="btn btn-t" onclick="doRetryApprove()"><i class="ti ti-lock-open"></i> ✅ 최종 승인 · 핸드폰 잠금 해제!</button>`
+      : hasWrong ? `
+        <div style="background:var(--red-ll);border-radius:14px;padding:14px;border:0.5px solid var(--red-l)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <i class="ti ti-alert-circle" style="font-size:22px;color:var(--coral);flex-shrink:0"></i>
+            <div><div style="font-size:13px;font-weight:700;color:var(--coral-d)">아직 오답 ${wrongIds.length}개!</div><div style="font-size:11px;color:var(--gray)">${S.round+1}차 재도전 요청해요</div></div>
+          </div>
+          <button class="btn btn-r" onclick="doRetryReturn()"><i class="ti ti-arrow-back-up"></i> 오답 리턴 · ${S.round+1}차 재도전</button>
+        </div>`
+      : `<p style="text-align:center;font-size:12px;color:var(--gray);padding:10px">재채점 중... (${Object.keys(S.rGraded).length}/${rProblems.length})</p>`}
+    </div>
+  </div>`;
+}
+
+/* ── 승인 완료 화면 ── */
+function screenApproved() {
+  const retryCorrect = S.rIds.filter(id => S.rGraded[id] === true).length;
+  const totalCorrect = S.firstCorrect + (S.rIds.length > 0 ? retryCorrect : 0);
+  const earned = totalCorrect * S.creditPerQ;
+  return `
+  <div class="screen" style="min-height:calc(100vh - 38px);background:var(--teal-ll);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center">
+    <i class="ti ti-confetti" style="font-size:60px;color:var(--teal);animation:popIn .5s ease,floatY 3s .5s ease-in-out infinite;margin-bottom:16px"></i>
+    <div style="font-size:26px;font-weight:900;color:var(--teal-d);margin-bottom:6px">참 잘했어요! <i class="ti ti-star-filled" style="font-size:22px;color:#EF9F27"></i></div>
+    <div style="font-size:13px;color:var(--teal-d);margin-bottom:24px">핸드폰 잠금이 해제됐어요! 🔓</div>
+    <div class="card" style="max-width:290px;padding:18px;margin-bottom:18px;border-color:var(--teal-l)">
+      ${S.rIds.length > 0 ? `
+        <div style="display:flex;justify-content:space-around;margin-bottom:10px">
+          <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--teal)">${S.firstCorrect}개</div><div style="font-size:10px;color:var(--gray)">1차 정답</div></div>
+          <div style="color:var(--gray);font-size:18px;padding-top:6px">+</div>
+          <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--coral)">${retryCorrect}개</div><div style="font-size:10px;color:var(--gray)">재도전 정답</div></div>
+          <div style="color:var(--gray);font-size:18px;padding-top:6px">=</div>
+          <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--teal)">${totalCorrect}개</div><div style="font-size:10px;color:var(--gray)">최종</div></div>
+        </div>
+        <div style="height:0.5px;background:var(--border);margin-bottom:10px"></div>` : ''}
+      <div style="font-size:11px;color:var(--gray);margin-bottom:5px">이번에 적립된 크레딧</div>
+      <div style="font-size:40px;font-weight:900;color:var(--coral)">+${earned.toLocaleString()}원</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:3px">정답 ${totalCorrect}개 × ${S.creditPerQ.toLocaleString()}원</div>
+    </div>
+    ${S.odapNote.filter(n=>!n.solved).length > 0
+      ? `<div class="tag tr" style="margin-bottom:14px"><i class="ti ti-notes"></i> 오답노트 ${S.odapNote.filter(n=>!n.solved).length}개 저장됨</div>` : ''}
+    <button class="btn btn-t" onclick="go('studentHome')" style="max-width:280px"><i class="ti ti-home"></i> 홈으로 가기</button>
+  </div>`;
+}
+
+/* ── 학생 홈 ── */
+function screenStudentHome() {
+  const main = S.rewards[0];
+  const pct = Math.min((S.credits / main.price) * 100, 100);
+  const unsolved = S.odapNote.filter(n => !n.solved);
+  return `
+  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
+    <div class="hdr hdr-coral">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:11px;color:var(--gray)">안녕하세요 👋</div><div style="font-size:18px;font-weight:700;color:var(--coral-d)">하은이의 공부방</div></div>
+        <button class="btn btn-g" onclick="go('login')" style="width:auto;padding:8px 12px;font-size:11px">나가기 <i class="ti ti-logout"></i></button>
+      </div>
+    </div>
+    <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div><div style="font-size:11px;color:var(--gray)">현재 크레딧</div><div style="font-size:28px;font-weight:900;color:var(--coral)">${S.credits.toLocaleString()}원</div></div>
+          <i class="ti ti-trophy" style="font-size:32px;color:#EF9F27;animation:floatY 3s ease-in-out infinite"></i>
+        </div>
+        <div style="font-size:11px;color:var(--gray);margin-bottom:5px"><i class="ti ${main.icon}"></i> ${main.name} 달성까지</div>
+        <div class="pt" style="margin-bottom:4px"><div class="pf" style="width:${pct}%;background:var(--coral)"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray)"><span>${pct.toFixed(1)}% 달성!</span><span>${(main.price-S.credits).toLocaleString()}원 남음</span></div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:7px"><i class="ti ti-gift"></i> 보상 목록</div>
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">
+          ${S.rewards.map(r => { const p2=Math.min((S.credits/r.price)*100,100); return `
+          <div class="card" style="min-width:110px;flex-shrink:0;text-align:center;padding:12px;border-color:${p2>=100?'var(--teal-l)':'var(--border)'}">
+            <i class="ti ${r.icon}" style="font-size:24px;color:${p2>=100?'var(--teal)':'var(--coral)'}"></i>
+            <div style="font-size:11px;font-weight:500;color:var(--navy);margin:5px 0 2px">${r.name}</div>
+            <div style="font-size:10px;color:var(--coral);font-weight:500">${r.price.toLocaleString()}원</div>
+            ${p2>=100?'<div class="tag tt" style="margin-top:5px;font-size:9px">달성!</div>':''}
+          </div>`;}).join('')}
+        </div>
+      </div>
+      ${unsolved.length > 0 ? `
+      <div class="card" style="border-color:var(--red-l)">
+        <div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:8px">
+          <i class="ti ti-notes" style="color:var(--coral)"></i> 오답노트 <span class="tag tr" style="font-size:10px">${unsolved.length}개 미해결</span>
+        </div>
+        ${unsolved.map(n => `
+        <div style="padding:7px 0;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:12px;font-weight:500;color:var(--navy)">${n.unit}</div><div style="font-size:10px;color:var(--gray)">오답: ${n.wrongAns} / 정답: ${n.ans}</div></div>
+          <span class="ub">미해결</span>
+        </div>`).join('')}
+      </div>` : ''}
+      <div class="card">
+        <div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:10px"><i class="ti ti-calendar"></i> 오늘 학습 일정</div>
+        ${S.schedules.map((sch, i) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;${i<S.schedules.length-1?'padding-bottom:10px;margin-bottom:10px;border-bottom:0.5px solid var(--border)':''}">
+          <div><div style="font-size:13px;font-weight:500;color:var(--navy)">${sch.label}</div><div style="font-size:11px;color:var(--gray)">${sch.subj} ${sch.count}문제 · ${sch.days}</div></div>
+          <span class="tag tt" style="font-size:10px">대기중</span>
+        </div>`).join('')}
+      </div>
+      <button class="btn btn-c" onclick="S.qIdx=0;go('motivational')"><i class="ti ti-book"></i> 지금 공부하기!</button>
+    </div>
+  </div>`;
+}
+
+/* ── 관리자 홈 ── */
+function screenAdmin() {
+  const tabs = [
+    {id:'dash',i:'ti-dashboard',l:'현황'},{id:'grade',i:'ti-clipboard-check',l:'채점'},
+    {id:'sch',i:'ti-clock',l:'스케줄'},{id:'reward',i:'ti-gift',l:'보상'},{id:'odap',i:'ti-notes',l:'오답노트'},
+  ];
+  const tabContent = { dash: adminTabDash, grade: adminTabGrade, sch: adminTabSchedule, reward: adminTabReward, odap: adminTabOdap };
+  return `
+  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
+    <div class="hdr hdr-teal">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:11px;color:var(--gray)">관리자 대시보드</div><div style="font-size:18px;font-weight:700;color:var(--teal-d)"><i class="ti ti-settings"></i> 매일-스터디</div></div>
+        <button class="btn btn-g" onclick="go('login')" style="width:auto;padding:8px 12px;font-size:11px">나가기 <i class="ti ti-logout"></i></button>
+      </div>
+    </div>
+    <div class="tab-bar">${tabs.map(t=>`<button onclick="S.aTab='${t.id}';saveState();render()" class="tb${S.aTab===t.id?' act':''}"><i class="ti ${t.i}"></i>${t.l}</button>`).join('')}</div>
+    <div style="flex:1;padding:12px;overflow-y:auto">${(tabContent[S.aTab]||adminTabDash)()}</div>
+  </div>`;
+}
+
+function adminTabDash() {
+  const days = ['월','화','수','목','금','토','일'];
+  const bars = [60,80,40,100,70,30,50];
+  return `
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px">
+    ${[{l:'오늘 문제',v:'5문제',i:'ti-pencil',c:'var(--coral)'},{l:'정답률',v:'80%',i:'ti-target',c:'var(--teal)'},{l:'학습시간',v:'24분',i:'ti-clock',c:'var(--amber)'},{l:'누적크레딧',v:S.credits.toLocaleString()+'원',i:'ti-coin',c:'var(--coral-d)'}].map(s=>`
+    <div class="card" style="padding:12px">
+      <i class="ti ${s.i}" style="font-size:20px;color:${s.c};display:block;margin-bottom:6px"></i>
+      <div style="font-size:17px;font-weight:700;color:${s.c}">${s.v}</div>
+      <div style="font-size:10px;color:var(--gray)">${s.l}</div>
+    </div>`).join('')}
+  </div>
+  <div class="card">
+    <div style="font-size:12px;font-weight:500;color:var(--navy);margin-bottom:10px"><i class="ti ti-chart-bar"></i> 이번 주 학습 현황</div>
+    <div style="display:flex;gap:4px;align-items:flex-end;height:65px">
+      ${bars.map((h,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="width:100%;height:${h}%;background:${i===3?'var(--coral)':'var(--teal-ll)'};border-radius:3px 3px 0 0;border:0.5px solid ${i===3?'var(--coral-d)':'var(--teal-l)'}"></div>
+        <div style="font-size:9px;color:${i===3?'var(--coral)':'var(--gray)'}">${days[i]}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function adminTabGrade() {
+  return `
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="card" style="border-color:var(--coral-l);display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:13px;font-weight:500;color:var(--navy)"><i class="ti ti-bell"></i> 채점 대기 중</div><div style="font-size:11px;color:var(--gray)">저녁 7시 · 수학 5문제</div></div>
+      <button class="btn btn-c" onclick="go('adminGrade')" style="width:auto;padding:9px 14px;font-size:12px">채점하기</button>
+    </div>
+    ${S.odapNote.length > 0 ? `
+    <div class="card" style="border-color:var(--red-l)">
+      <div style="font-size:12px;font-weight:500;color:var(--navy);margin-bottom:7px"><i class="ti ti-notes" style="color:var(--coral)"></i> 오답노트 현황</div>
+      ${S.odapNote.map(n=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--border)">
+        <div><div style="font-size:11px;font-weight:500;color:var(--navy)">${n.unit}</div><div style="font-size:10px;color:var(--gray)">오답: ${n.wrongAns} → 정답: ${n.ans}</div></div>
+        <span class="${n.solved?'sb':'ub'}">${n.solved?'해결':'미해결'}</span>
+      </div>`).join('')}
+    </div>` : '<div style="text-align:center;padding:20px;color:var(--gray);font-size:12px"><i class="ti ti-notes" style="font-size:28px;display:block;margin-bottom:6px"></i>채점 기록 없음</div>'}
+  </div>`;
+}
+
+function adminTabSchedule() {
+  return `
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn btn-t" onclick="alert('Firebase 연결 후 스케줄 추가 가능!')"><i class="ti ti-plus"></i> 새 스케줄 추가</button>
+    ${S.schedules.map(s=>`
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--teal)">${s.label}</div>
+        <div style="font-size:11px;color:var(--gray)">${s.subj} ${s.count}문제 · ${s.days} · 난이도 ${s.diff}</div>
+      </div>
+      <button class="btn btn-g" style="width:auto;padding:7px 10px;color:var(--red);border-color:var(--red-l);font-size:11px"><i class="ti ti-trash"></i></button>
+    </div>`).join('')}
+    <div class="card" style="padding:12px">
+      <div style="font-size:12px;font-weight:500;color:var(--navy);margin-bottom:8px"><i class="ti ti-lock"></i> 긴급 해제 코드</div>
+      <div style="display:flex;gap:5px">
+        ${['3','8','1','9','2','4'].map(d=>`<div style="flex:1;background:#F8F8F6;border-radius:6px;padding:8px 0;text-align:center;font-size:18px;font-weight:700;color:var(--navy)">${d}</div>`).join('')}
+      </div>
+      <div style="font-size:10px;color:var(--gray);margin-top:6px;text-align:center">⚠️ 앱 설치 후 반드시 변경하세요!</div>
+    </div>
+  </div>`;
+}
+
+function adminTabReward() {
+  return `
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:11px;color:var(--gray)">정답 1개당 크레딧</div><div style="font-size:24px;font-weight:700;color:var(--coral)">${S.creditPerQ.toLocaleString()}원</div></div>
+      <button class="btn btn-g" style="width:auto;font-size:11px;padding:8px 12px" onclick="var v=prompt('정답 1개당 크레딧 금액:',S.creditPerQ);if(v&&!isNaN(v)){S.creditPerQ=parseInt(v);saveState();render();}"><i class="ti ti-edit"></i> 변경</button>
+    </div>
+    ${S.rewards.map(r => { const p2=Math.min((S.credits/r.price)*100,100); return `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <i class="ti ${r.icon}" style="font-size:24px;color:var(--coral)"></i>
+          <div><div style="font-size:13px;font-weight:500;color:var(--navy)">${r.name}</div><div style="font-size:11px;color:var(--coral)">${r.price.toLocaleString()}원 (${p2.toFixed(1)}%)</div></div>
+        </div>
+        ${p2>=100 ? `<button class="btn btn-t" style="width:auto;padding:7px 11px;font-size:11px" onclick="if(confirm('${r.name} 보상을 지급 완료 처리할까요?')){S.credits=Math.max(0,S.credits-r.price);saveState();render();}">지급완료</button>` : ''}
+      </div>
+      <div class="pt"><div class="pf" style="width:${p2}%;background:var(--coral)"></div></div>
+    </div>`;}).join('')}
+    <button class="btn btn-c" onclick="var n=prompt('보상 이름:');var p=prompt('금액(원):');if(n&&p&&!isNaN(p)){S.rewards.push({id:Date.now(),name:n,price:parseInt(p),icon:'ti-gift'});saveState();render();}">
+      <i class="ti ti-plus"></i> 새 보상 추가
+    </button>
+    <button class="btn btn-g" style="color:var(--red);border-color:var(--red-l)" onclick="if(confirm('전체 크레딧을 리셋할까요?')){S.credits=0;saveState();render();}">전체 크레딧 리셋</button>
+  </div>`;
+}
+
+function adminTabOdap() {
+  if (!S.odapNote.length) return `
+    <div style="text-align:center;padding:36px 20px;color:var(--gray)">
+      <i class="ti ti-notes" style="font-size:44px;display:block;margin-bottom:10px"></i>
+      <div style="font-size:14px;font-weight:500;color:var(--navy);margin-bottom:4px">오답노트가 비어있어요</div>
+      <div style="font-size:12px">오답 발생 시 자동 저장됩니다</div>
+    </div>`;
+  const unsolved = S.odapNote.filter(n=>!n.solved);
+  const solved = S.odapNote.filter(n=>n.solved);
+  return `
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+      <div class="card" style="text-align:center;padding:12px;border-color:var(--red-l)"><div style="font-size:22px;font-weight:700;color:var(--coral)">${unsolved.length}</div><div style="font-size:10px;color:var(--gray)">미해결</div></div>
+      <div class="card" style="text-align:center;padding:12px;border-color:var(--teal-l)"><div style="font-size:22px;font-weight:700;color:var(--teal)">${solved.length}</div><div style="font-size:10px;color:var(--gray)">해결완료</div></div>
+    </div>
+    ${unsolved.map(n=>`
+    <div class="card" style="border-color:var(--red-l)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
+        <div style="display:flex;gap:4px;flex-wrap:wrap"><span class="tag tt" style="font-size:10px">${n.unit}</span><span class="tag tr" style="font-size:10px">${n.retries}회 오답</span></div>
+        <span class="ub">미해결</span>
+      </div>
+      <div style="font-size:12px;color:var(--navy);white-space:pre-line;margin-bottom:7px">${n.q}</div>
+      <div style="display:flex;gap:10px;font-size:11px">
+        <div><span style="color:var(--gray)">오답: </span><span style="color:var(--coral);text-decoration:line-through">${n.wrongAns}</span></div>
+        <div><span style="color:var(--gray)">정답: </span><span style="color:var(--teal);font-weight:700">${n.ans}</span></div>
+      </div>
+      <div style="font-size:10px;color:var(--gray);margin-top:5px"><i class="ti ti-calendar"></i> ${n.date}</div>
+    </div>`).join('')}
+    ${solved.map(n=>`
+    <div class="card" style="border-color:var(--teal-l);opacity:.75">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="tag tt" style="font-size:10px">${n.unit}</span><span class="sb">해결완료</span></div>
+      <div style="font-size:11px;color:var(--gray);margin-top:5px">정답: ${n.ans}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+/* ══ 동작 함수들 ══ */
+function loginAs(name, role) {
+  S.user = { name, role };
+  if (role === 'student') { S.qIdx = 0; go('motivational'); }
+  else go('admin');
+}
+
+function useHint(id) { S.hintLevel[id] = Math.min((S.hintLevel[id]||0)+1, 3); saveState(); render(); }
+function useRHint(id) { S.rHints[id] = Math.min((S.rHints[id]||0)+1, 3); saveState(); render(); }
+
+function doApprove() {
+  S.firstCorrect = getStudyProblems().filter(p => S.graded[p.id] === true).length;
+  S.credits += S.firstCorrect * S.creditPerQ;
+  saveState();
+  go('approved');
+}
+
+function doReturn() {
+  const wrongIds = getStudyProblems().filter(p => S.graded[p.id] === false).map(p=>p.id);
+  S.firstCorrect = getStudyProblems().filter(p => S.graded[p.id] === true).length;
+  wrongIds.forEach(id => {
+    const p = getStudyProblems().find(pr=>pr.id===id);
+    const ex = S.odapNote.find(n=>n.id===id);
+    if (ex) { ex.retries++; ex.wrongAns = S.answers[id]||'?'; }
+    else S.odapNote.push({ id, q:p.q, unit:p.unit, wrongAns:S.answers[id]||'?', ans:p.ans, date:new Date().toLocaleDateString('ko-KR'), retries:1, solved:false });
+  });
+  S.rIds = wrongIds; S.rAnswers = {}; S.rHints = {}; S.rGraded = {}; S.curR = 0; S.round++;
+  saveState(); go('retry');
+}
+
+function doRetryApprove() {
+  const rProblems = getStudyProblems().filter(p=>S.rIds.includes(p.id));
+  const retryCorrect = rProblems.filter(p=>S.rGraded[p.id]===true).length;
+  rProblems.forEach(p => { const n=S.odapNote.find(n=>n.id===p.id); if(n&&S.rGraded[p.id])n.solved=true; });
+  S.credits += (S.firstCorrect + retryCorrect) * S.creditPerQ;
+  saveState(); go('approved');
+}
+
+function doRetryReturn() {
+  const rProblems = getStudyProblems().filter(p=>S.rIds.includes(p.id));
+  const stillWrong = rProblems.filter(p=>S.rGraded[p.id]===false).map(p=>p.id);
+  rProblems.filter(p=>S.rGraded[p.id]===true).forEach(p => { const n=S.odapNote.find(n=>n.id===p.id); if(n)n.solved=true; });
+  stillWrong.forEach(id => { const n=S.odapNote.find(n=>n.id===id); if(n){n.retries++;n.wrongAns=S.rAnswers[id]||'?';} });
+  S.rIds=stillWrong; S.rAnswers={}; S.rHints={}; S.rGraded={}; S.curR=0; S.round++;
+  saveState(); go('retry');
+}
+
+/* ══ PWA 서비스 워커 등록 ══ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => console.log('[PWA] 서비스 워커 등록 완료:', reg.scope))
+      .catch(err => console.log('[PWA] 서비스 워커 오류:', err));
+  });
+}
+
+/* ══ 알림 권한 설정 ══ */
+window.addEventListener('load', () => {
+  if (Notification.permission === 'default') {
+    /* 알림 권한은 관리자 화면에서 자연스럽게 요청 */
+  }
+});
+
+/* ══ 시작 ══ */
+render();
+</script>
+</body>
+</html>
