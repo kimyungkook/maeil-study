@@ -148,7 +148,7 @@ const DEF_STATE={
   emergencyCode:'000000',
   studyHistory:[],schedules:[],
   bankUsedIds:{},
-  settings:{apiKey:'',mathModel:'gemini-1.5-flash',engModel:'gemini-1.5-flash',groqApiKey:'',claudeApiKey:''}
+  settings:{apiKey:'',mathModel:'gemini-3.1-flash-lite',engModel:'gemini-3.1-flash-lite',groqApiKey:'',claudeApiKey:''}
 };
 
 let S=Object.assign({},DEF_STATE);
@@ -196,7 +196,7 @@ async function fetchGemini(prompt, modelType) {
     alert("아빠! 관리자 [설정] 탭에서 구글 Gemini API Key를 먼저 등록해주세요!");
     return null;
   }
-  const model = (modelType === 'math' ? S.settings.mathModel : S.settings.engModel) || 'gemini-1.5-flash';
+  const model = (modelType === 'math' ? S.settings.mathModel : S.settings.engModel) || 'gemini-3.1-flash-lite';
   try {
     const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent?key="+S.settings.apiKey, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -778,8 +778,42 @@ async function processBankFile() {
     if (ext === 'pdf') {
       if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:var(--mint-ll);border-radius:8px;font-size:12px;color:var(--mint-d)">📄 PDF 텍스트 추출 중...</div>';
       extractedText = await extractTextFromPDF(file);
-      S._lastPdfBase64 = await readFileAsBase64(file); /* ← 이 줄만 추가 */
+      S._lastPdfBase64 = await readFileAsBase64(file);
+
+      /* PDF → 이미지 변환 후 Gemini Vision으로 파싱 */
+      if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:var(--mint-ll);border-radius:8px;font-size:12px;color:var(--mint-d)">🖼️ PDF를 이미지로 변환 중...</div>';
+      try {
+        var pdfImageResults = [];
+        var pdfData = atob(S._lastPdfBase64);
+        var pdfBytes = new Uint8Array(pdfData.length);
+        for(var i=0;i<pdfData.length;i++) pdfBytes[i]=pdfData.charCodeAt(i);
+        var pdfDoc = await pdfjsLib.getDocument({data:pdfBytes}).promise;
+        for(var p=1; p<=Math.min(pdfDoc.numPages,5); p++){
+          var page = await pdfDoc.getPage(p);
+          var viewport = page.getViewport({scale:2.0});
+          var canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({canvasContext:canvas.getContext('2d'), viewport:viewport}).promise;
+          var imgBase64 = canvas.toDataURL('image/jpeg',0.85).split(',')[1];
+          pdfImageResults.push(imgBase64);
+        }
+        if(pdfImageResults.length > 0 && S.settings && S.settings.apiKey){
+          if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:var(--mint-ll);border-radius:8px;font-size:12px;color:var(--mint-d)">🤖 Gemini Vision으로 문제 분석 중...</div>';
+          var allParsed = [];
+          for(var pi=0; pi<pdfImageResults.length; pi++){
+            var pageResult = await callGeminiVision(pdfImageResults[pi], 'image/jpeg', unit, resultDiv);
+            if(pageResult && pageResult.length>0) allParsed = allParsed.concat(pageResult);
+          }
+          if(allParsed.length > 0){
+            S._pendingParsed = allParsed;
+            if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#15803d">✅ PDF 이미지 파싱 성공! '+allParsed.length+'문제 추출완료</div>';
+            return;
+          }
+        }
+      } catch(pdfImgErr){ console.warn('PDF 이미지 변환 실패:', pdfImgErr); }
     }
+
     /* Phase 2: 이미지 → Gemini Vision */
     else if (['jpg', 'jpeg', 'png'].indexOf(ext) !== -1) {
       if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:var(--mint-ll);border-radius:8px;font-size:12px;color:var(--mint-d)">🖼️ 이미지 분석 중... (30초~1분 소요)</div>';
@@ -888,11 +922,11 @@ function readFileAsBase64(file) {
 /* ★ 핀셋 수정 2: Gemini Vision (이미지용) - 모델을 사용자 설정으로 변경 + 에러 메시지 개선 */
 async function callGeminiVision(base64Data, mimeType, unit, resultDiv) {
   /* ★ 수정: S.settings.mathModel 우선, 없으면 flash 기본 */
-  var model = (S.settings && S.settings.mathModel) || 'gemini-1.5-flash';
+  var model = (S.settings && S.settings.mathModel) || 'gemini-3.1-flash-lite';
   /* flash가 이미지 실패시 pro로 재시도 */
   var modelsToTry = [model];
-  if(model !== 'gemini-1.5-flash') modelsToTry.push('gemini-1.5-flash');
-  if(model !== 'gemini-1.5-pro' && modelsToTry.indexOf('gemini-1.5-pro') === -1) modelsToTry.push('gemini-1.5-pro');
+  if(model !== 'gemini-3.1-flash-lite') modelsToTry.push('gemini-3.1-flash-lite');
+  if(model !== 'gemini-3.1-flash-lite' && modelsToTry.indexOf('gemini-3.1-flash-lite') === -1) modelsToTry.push('gemini-3.1-flash-lite');
 
   var prompt = '이 파일은 한국 중학교 수학 교재/시험지입니다. 단원: "' + unit + '"\n'
     + '[추출 규칙]\n'
@@ -1047,7 +1081,7 @@ async function testA_GeminiPDFDirect(pdfBase64, unit) {
     + '[{"unit":"' + unit + '","q":"문제 전체 내용","ans":"","hints":[],"exp":"","diff":"중"}]';
   try {
     var res = await fetch(
-     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=' + S.settings.apiKey,
+     'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=' + S.settings.apiKey,
       { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           contents:[{ parts:[
@@ -1281,7 +1315,7 @@ function adminTabOdap(){
 }
 
 function adminTabSettings(){
-  if(!S.settings) S.settings = {apiKey:'', mathModel:'gemini-1.5-flash', engModel:'gemini-1.5-flash'};
+  if(!S.settings) S.settings = {apiKey:'', mathModel:'gemini-3.1-flash-lite', engModel:'gemini-3.1-flash-lite'};
   var grades=Object.keys(MATH_UNITS);
   var mathUnits=MATH_UNITS[S.mathGrade||'중1']||[];
   var audioState = S.cheerAudio ? '<div style="color:var(--mint);font-size:12px;margin-bottom:8px;font-weight:700">🎙️ 부모님 진짜 목소리가 저장되어 있습니다!</div>' : '<div style="color:var(--gray);font-size:12px;margin-bottom:8px">저장된 목소리가 없습니다 (기본 AI 음성으로 대체됨)</div>';
@@ -1313,7 +1347,7 @@ function adminTabSettings(){
     +'🔗 무료 발급: <b>console.groq.com</b> → API Keys → Create<br>'
     +'✅ Llama 3.3 70B · 한국어 수학 문제 파싱 최적화<br>'
     +'📌 Groq 키가 있으면 PDF 파싱에 Groq 우선 사용</div></div>'
-    +'<div class="modal-field"><label>🤖 수학/영어/문제은행 파싱 AI 모델</label><select id="set-math" style="margin-bottom:16px"><option value="gemini-1.5-flash" '+(S.settings.mathModel==='gemini-1.5-flash'?'selected':'')+'>Gemini 1.5 Flash (기본 권장)</option><option value="gemini-1.5-pro" '+(S.settings.mathModel==='gemini-1.5-pro'?'selected':'')+'>Gemini 1.5 Pro (고성능·PDF 파싱 추천)</option><option value="gemini-3.1-flash-lite" '+(S.settings.mathModel==='gemini-3.1-flash-lite'?'selected':'')+'>Gemini 3.1 Flash Lite (신규 초경량 모델)</option></select></div>'
+    +'<div class="modal-field"><label>🤖 수학/영어/문제은행 파싱 AI 모델</label><select id="set-math" style="margin-bottom:16px"><option value="gemini-3.1-flash-lite" '+(S.settings.mathModel==='gemini-3.1-flash-lite'?'selected':'')+'>gemini-3.1-flash-lite (기본 권장)</option><option value="gemini-3.1-pro-preview" '+(S.settings.mathModel==='gemini-3.1-pro-preview'?'selected':'')+'>gemini-3.1-pro-preview (고성능·PDF 파싱 추천)</option><option value="gemini-3.1-flash-lite" '+(S.settings.mathModel==='gemini-3.1-flash-lite'?'selected':'')+'>Gemini 3.1 Flash Lite (신규 초경량 모델)</option></select></div>'
     +'<button class="btn btn-c" onclick="saveAdminSettings()"><i class="ti ti-device-floppy"></i> 모든 설정 저장하기</button></div></div>';
 }
 
