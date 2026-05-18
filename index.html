@@ -498,7 +498,271 @@ function screenLogin(){
     +ms.map(function(m,i){return '<button onclick="loginAs(&apos;'+m.n+'&apos;,&apos;'+m.r+'&apos;)" style="background:'+m.bg+';border:.5px solid '+m.c+'60;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;width:100%;font-family:inherit;animation:fadeUp .4s ease '+(i*.08)+'s both"><i class="ti '+m.i+'" style="font-size:26px;color:'+m.c+';flex-shrink:0"></i><div style="text-align:left;flex:1"><div style="font-size:17px;font-weight:700;color:'+m.c+'">'+m.n+'</div><div style="font-size:11px;color:var(--gray)">'+m.sub+'</div></div><i class="ti ti-chevron-right" style="color:'+m.c+';font-size:15px"></i></button>'}).join('')
     +'</div></div>';
 }
-function loginAs(name,role){ S.user={name:name,role:role}; if(role==='student'){S.qIdx=0;go('motivational');startQuoteTimer();}else go('admin'); }
+function loginAs(name,role){
+  if(role==='admin'){
+    /* 관리자 PIN 확인 */
+    var savedPin = S.adminPin || '';
+    if(!savedPin){
+      /* 최초 설정: PIN 없으면 바로 설정 화면 */
+      showPinSetup(name, role);
+      return;
+    }
+    showPinInput(name, role);
+    return;
+  }
+  S.user={name:name,role:role};
+  S.qIdx=0; go('motivational'); startQuoteTimer();
+}
+
+function showPinSetup(name, role){
+  var overlay = document.createElement('div');
+  overlay.id = 'pin-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:20px;padding:28px 24px;width:88%;max-width:320px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.18)">'
+    +'<div style="font-size:22px;margin-bottom:6px">🔐</div>'
+    +'<div style="font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:4px">관리자 PIN 최초 설정</div>'
+    +'<div style="font-size:11px;color:#888;margin-bottom:18px">1~12자리 숫자 또는 영문+숫자 조합</div>'
+    +'<div style="display:flex;gap:4px;justify-content:center;margin-bottom:16px;flex-wrap:wrap">'
+    +Array(12).fill(0).map(function(_,i){
+      return '<div id="pbox-'+i+'" style="width:20px;height:24px;border-bottom:2px solid #ddd;margin:2px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#333;min-width:20px">_</div>';
+    }).join('')
+    +'</div>'
+    +'<input id="pin-input-field" type="password" maxlength="12" placeholder="비밀번호 입력" '
+    +'style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:16px;text-align:center;letter-spacing:4px;margin-bottom:10px;box-sizing:border-box;outline:none" '
+    +'oninput="updatePinBoxes(this.value)" autocomplete="new-password">'
+    +'<input id="pin-confirm-field" type="password" maxlength="12" placeholder="비밀번호 확인" '
+    +'style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:16px;text-align:center;letter-spacing:4px;margin-bottom:16px;box-sizing:border-box;outline:none" autocomplete="new-password">'
+    +'<button onclick="savePinSetup(&apos;'+name+'&apos;,&apos;'+role+'&apos;)" '
+    +'style="width:100%;padding:12px;background:#2ec4b6;border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">✅ PIN 저장 후 입장</button>'
+    +'<button onclick="document.getElementById(&apos;pin-overlay&apos;).remove()" '
+    +'style="width:100%;padding:10px;background:#f5f5f5;border:none;border-radius:12px;color:#888;font-size:13px;cursor:pointer">취소</button>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  setTimeout(function(){ var f=document.getElementById('pin-input-field'); if(f) f.focus(); }, 100);
+}
+
+function updatePinBoxes(val){
+  for(var i=0;i<12;i++){
+    var box = document.getElementById('pbox-'+i);
+    if(!box) continue;
+    if(i < val.length){
+      box.textContent = '●';
+      box.style.borderBottomColor = '#2ec4b6';
+    } else {
+      box.textContent = '_';
+      box.style.borderBottomColor = '#ddd';
+    }
+  }
+}
+
+function savePinSetup(name, role){
+  var p1 = document.getElementById('pin-input-field').value;
+  var p2 = document.getElementById('pin-confirm-field').value;
+  if(!p1 || p1.length < 1){ alert('비밀번호를 입력해주세요!'); return; }
+  if(p1 !== p2){ alert('비밀번호가 일치하지 않습니다!'); return; }
+  S.adminPin = p1;
+  saveState();
+  document.getElementById('pin-overlay').remove();
+  toast('✅ PIN이 설정되었습니다!');
+  S.user={name:name,role:role};
+  go('admin');
+}
+
+function showPinInput(name, role){
+  var failCount = S._pinFail || 0;
+  var lockUntil = S._pinLockUntil || 0;
+  if(Date.now() < lockUntil){
+    var sec = Math.ceil((lockUntil - Date.now())/1000);
+    alert('⛔ 너무 많이 틀렸습니다. '+sec+'초 후 다시 시도하세요!');
+    return;
+  }
+  var overlay = document.createElement('div');
+  overlay.id = 'pin-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:20px;padding:28px 24px;width:88%;max-width:320px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.18)">'
+    +'<div style="font-size:22px;margin-bottom:6px">🔒</div>'
+    +'<div style="font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:4px">관리자 인증</div>'
+    +'<div style="font-size:11px;color:#888;margin-bottom:18px">'+name+' 관리자 PIN을 입력하세요</div>'
+    +'<div style="display:flex;gap:4px;justify-content:center;margin-bottom:16px;flex-wrap:wrap">'
+    +Array(12).fill(0).map(function(_,i){
+      return '<div id="pbox2-'+i+'" style="width:20px;height:24px;border-bottom:2px solid #ddd;margin:2px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#333">_</div>';
+    }).join('')
+    +'</div>'
+    +'<input id="pin-input-field2" type="password" maxlength="12" placeholder="PIN 입력" '
+    +'style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:16px;text-align:center;letter-spacing:4px;margin-bottom:16px;box-sizing:border-box;outline:none" '
+    +'oninput="updatePinBoxes2(this.value)" onkeydown="if(event.key===\'Enter\') checkPin(&apos;'+name+'&apos;,&apos;'+role+'&apos;)" autocomplete="off">'
+    +'<button onclick="checkPin(&apos;'+name+'&apos;,&apos;'+role+'&apos;)" '
+    +'style="width:100%;padding:12px;background:#2ec4b6;border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">🔓 입장</button>'
+    +'<button onclick="document.getElementById(&apos;pin-overlay&apos;).remove()" '
+    +'style="width:100%;padding:10px;background:#f5f5f5;border:none;border-radius:12px;color:#888;font-size:13px;cursor:pointer">취소</button>'
+    +'<div id="pin-err" style="margin-top:10px;font-size:12px;color:#e74c3c;min-height:18px"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  setTimeout(function(){ var f=document.getElementById('pin-input-field2'); if(f) f.focus(); }, 100);
+}
+
+function updatePinBoxes2(val){
+  for(var i=0;i<12;i++){
+    var box = document.getElementById('pbox2-'+i);
+    if(!box) continue;
+    if(i < val.length){
+      box.textContent = '●';
+      box.style.borderBottomColor = '#2ec4b6';
+    } else {
+      box.textContent = '_';
+      box.style.borderBottomColor = '#ddd';
+    }
+  }
+}
+
+function checkPin(name, role){
+  var input = document.getElementById('pin-input-field2');
+  if(!input) return;
+  var val = input.value;
+  if(val === S.adminPin){
+    S._pinFail = 0;
+    saveState();
+    document.getElementById('pin-overlay').remove();
+    S.user={name:name,role:role};
+    go('admin');
+  } else {
+    S._pinFail = (S._pinFail||0) + 1;
+    var errDiv = document.getElementById('pin-err');
+    if(S._pinFail >= 3){
+      S._pinLockUntil = Date.now() + 60000;
+      S._pinFail = 0;
+      saveState();
+      document.getElementById('pin-overlay').remove();
+      alert('⛔ 3회 틀렸습니다. 1분 후 다시 시도하세요!');
+      return;
+    }
+    saveState();
+    if(errDiv) errDiv.textContent = '❌ PIN이 틀렸습니다. ('+(3-S._pinFail)+'회 남음)';
+    input.value = '';
+    updatePinBoxes2('');
+   input.focus();
+  }
+}
+
+/* ══════════════════════════════
+   WebAuthn 지문인식 (Android 연동)
+══════════════════════════════ */
+async function registerFingerprint(){
+  if(!window.PublicKeyCredential){
+    toast('❌ 이 기기/브라우저는 지문인식을 지원하지 않습니다'); return;
+  }
+  try {
+    var challenge = new Uint8Array(32);
+    window.crypto.getRandomValues(challenge);
+    var userId = new Uint8Array(16);
+    window.crypto.getRandomValues(userId);
+    var credential = await navigator.credentials.create({
+      publicKey: {
+        challenge: challenge,
+        rp: { name: '매일스터디', id: location.hostname },
+        user: { id: userId, name: 'admin', displayName: '관리자' },
+        pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required'
+        },
+        timeout: 60000
+      }
+    });
+    var idArr = Array.from(new Uint8Array(credential.rawId));
+    S.fingerprintId = idArr;
+    saveState();
+    toast('✅ 지문인식 등록 완료!');
+    render();
+  } catch(e) {
+    if(e.name === 'NotAllowedError') toast('❌ 지문인식이 취소되었습니다');
+    else toast('❌ 지문인식 등록 실패: ' + e.message);
+  }
+}
+
+async function authenticateFingerprint(name, role){
+  if(!window.PublicKeyCredential || !S.fingerprintId){
+    toast('❌ 먼저 지문인식을 등록해주세요'); return;
+  }
+  try {
+    var challenge = new Uint8Array(32);
+    window.crypto.getRandomValues(challenge);
+    var credId = new Uint8Array(S.fingerprintId);
+    var assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge: challenge,
+        rpId: location.hostname,
+        allowCredentials: [{
+          id: credId,
+          type: 'public-key',
+          transports: ['internal']
+        }],
+        userVerification: 'required',
+        timeout: 60000
+      }
+    });
+    if(assertion){
+      S._pinFail = 0;
+      document.getElementById('pin-overlay') && document.getElementById('pin-overlay').remove();
+      S.user = {name:name, role:role};
+      saveState();
+      go('admin');
+      toast('✅ 지문인식 성공!');
+    }
+  } catch(e) {
+    if(e.name === 'NotAllowedError') toast('❌ 지문인식이 취소되었습니다');
+    else toast('❌ 지문인식 실패: ' + e.message);
+  }
+}
+
+/* PIN 변경 함수 */
+function showPinChange(){
+  var overlay = document.createElement('div');
+  overlay.id = 'pin-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:20px;padding:28px 24px;width:88%;max-width:320px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.18)">'
+    +'<div style="font-size:22px;margin-bottom:6px">🔑</div>'
+    +'<div style="font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px">PIN 번호 변경</div>'
+    +'<input id="pin-old" type="password" maxlength="12" placeholder="현재 PIN 입력" '
+    +'style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;text-align:center;letter-spacing:4px;margin-bottom:10px;box-sizing:border-box;outline:none">'
+    +'<input id="pin-new1" type="password" maxlength="12" placeholder="새 PIN 입력 (1~12자리)" '
+    +'style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;text-align:center;letter-spacing:4px;margin-bottom:10px;box-sizing:border-box;outline:none">'
+    +'<input id="pin-new2" type="password" maxlength="12" placeholder="새 PIN 확인" '
+    +'style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;text-align:center;letter-spacing:4px;margin-bottom:16px;box-sizing:border-box;outline:none">'
+    +'<button onclick="confirmPinChange()" '
+    +'style="width:100%;padding:12px;background:#2ec4b6;border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">✅ PIN 변경</button>'    
+    +'<button onclick="document.getElementById(&apos;pin-overlay&apos;).remove()" '
+    +'style="width:100%;padding:10px;background:#f5f5f5;border:none;border-radius:12px;color:#888;font-size:13px;cursor:pointer">취소</button>'
+    +'<div id="pin-err" style="margin-top:10px;font-size:12px;color:#e74c3c;min-height:18px"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+}
+
+function confirmPinChange(){
+  var oldPin = document.getElementById('pin-old').value;
+  var newPin1 = document.getElementById('pin-new1').value;
+  var newPin2 = document.getElementById('pin-new2').value;
+  var errDiv = document.getElementById('pin-change-err');
+  if(oldPin !== S.adminPin){ errDiv.textContent = '❌ 현재 PIN이 틀렸습니다!'; return; }
+  if(!newPin1 || newPin1.length < 1){ errDiv.textContent = '❌ 새 PIN을 입력해주세요!'; return; }
+  if(newPin1 !== newPin2){ errDiv.textContent = '❌ 새 PIN이 일치하지 않습니다!'; return; }
+  S.adminPin = newPin1;
+  saveState();
+  document.getElementById('pin-overlay').remove();
+  toast('✅ PIN이 변경되었습니다!');
+}
+
+function deleteFingerprint(){
+  confirmModal('지문인식 정보를 삭제할까요?', function(){
+    S.fingerprintId = null;
+    saveState();
+    render();
+    toast('🗑️ 지문인식 삭제 완료');
+  });
+}
 
 function screenMotivational(){
   var q=QUOTES[S.qIdx];
@@ -570,7 +834,7 @@ function screenStudy(){
 function useHint(id){S.hl[id]=Math.min((S.hl[id]||0)+1,3);render();}
 function useRHint(id){S.rHL[id]=Math.min((S.rHL[id]||0)+1,3);render();}
 
-function screenWaiting(){return '<div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;background:#FAFAF8"><i class="ti ti-hourglass" style="font-size:56px;color:var(--coral);animation:floatY 2s ease-in-out infinite;margin-bottom:16px"></i><div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px">답안 제출 완료!</div><div style="font-size:13px;color:var(--gray);margin-bottom:24px">아빠 / 엄마가 채점 중이에요...</div><div class="card" style="max-width:290px;text-align:center;padding:14px"><p style="font-size:10px;color:var(--gray);margin-bottom:8px"><i class="ti ti-device-mobile"></i> 관리자 채점 (데모)</p><button class="btn btn-m" onclick="go(&apos;adminGrade&apos;)"><i class="ti ti-clipboard-check"></i> 관리자 채점 화면으로</button></div></div>';}
+function screenWaiting(){return '<div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;background:#FAFAF8"><i class="ti ti-hourglass" style="font-size:56px;color:var(--coral);animation:floatY 2s ease-in-out infinite;margin-bottom:16px"></i><div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px">답안 제출 완료!</div><div style="font-size:13px;color:var(--gray);margin-bottom:24px">아빠 / 엄마가 채점 중이에요...</div><div class="card" style="max-width:290px;text-align:center;padding:14px;display:'+(S.isAdmin?'block':'none')+'"><p style="font-size:10px;color:var(--gray);margin-bottom:8px"><i class="ti ti-device-mobile"></i> 관리자 채점 (데모)</p><button class="btn btn-m" onclick="go(&apos;adminGrade&apos;)"><i class="ti ti-clipboard-check"></i> 관리자 채점 화면으로</button></div></div>';}
 
 function screenAdminGrade(){
   var ps=S.problems; var allG=ps.every(function(p){return S.graded[p.id]!==undefined;});
@@ -1325,6 +1589,20 @@ function adminTabSettings(){
   var mathUnits=MATH_UNITS[S.mathGrade||'중1']||[];
   var audioState = S.cheerAudio ? '<div style="color:var(--mint);font-size:12px;margin-bottom:8px;font-weight:700">🎙️ 부모님 진짜 목소리가 저장되어 있습니다!</div>' : '<div style="color:var(--gray);font-size:12px;margin-bottom:8px">저장된 목소리가 없습니다 (기본 AI 음성으로 대체됨)</div>';
   return '<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<div class="card"><div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px"><i class="ti ti-shield-lock" style="color:var(--coral)"></i> 🔐 관리자 보안 설정</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px">'
+    +'<div style="background:var(--coral-ll);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between">'
+    +'<div><div style="font-size:13px;font-weight:700;color:var(--navy)">🔑 PIN 번호 변경</div>'
+    +'<div style="font-size:11px;color:var(--gray);margin-top:2px">'+(S.adminPin?'PIN이 설정되어 있습니다':'PIN이 설정되지 않았습니다')+'</div></div>'
+    +'<button class="btn btn-r" onclick="showPinChange()" style="width:auto;padding:8px 14px;font-size:12px">변경</button></div>'
+    +'<div style="background:var(--mint-ll);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between">'
+    +'<div><div style="font-size:13px;font-weight:700;color:var(--navy)">👆 지문인식 설정</div>'
+    +'<div style="font-size:11px;color:var(--gray);margin-top:2px">'+(S.fingerprintId?'✅ 지문이 등록되어 있습니다':'미등록 — 등록 시 지문으로 입장 가능')+'</div></div>'
+    +'<div style="display:flex;gap:6px">'
+    +(S.fingerprintId?'<button class="btn btn-r" onclick="deleteFingerprint()" style="width:auto;padding:8px 10px;font-size:12px">삭제</button>':'')
+    +'<button class="btn btn-m" onclick="registerFingerprint()" style="width:auto;padding:8px 14px;font-size:12px">'+(S.fingerprintId?'재등록':'등록')+'</button>'
+    +'</div></div>'
+    +'</div></div>'
     +'<div class="card"><div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px"><i class="ti ti-microphone" style="color:var(--coral)"></i> 👨‍👩‍👧 부모님 칭찬 목소리 녹음</div>'+audioState
     +'<div style="display:flex;gap:8px;margin-bottom:8px"><button id="btn-rec-start" class="btn btn-r" onclick="startRecording()" style="flex:1"><i class="ti ti-player-record"></i> 녹음 시작</button><button id="btn-rec-stop" class="btn btn-g" onclick="stopRecording()" style="flex:1" disabled>■ 녹음 중지</button></div>'
     +'<div style="display:flex;gap:8px"><button class="btn btn-m" onclick="playCheerAudio()" style="flex:1"><i class="ti ti-player-play"></i> 들어보기</button><button class="btn btn-g" onclick="deleteCheerAudio()" style="flex:1"><i class="ti ti-trash"></i> 삭제</button></div>'
