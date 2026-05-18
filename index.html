@@ -806,8 +806,13 @@ async function processBankFile() {
             if(pageResult && pageResult.length>0) allParsed = allParsed.concat(pageResult);
           }
           if(allParsed.length > 0){
-            S._pendingParsed = allParsed;
-            if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#15803d">✅ PDF 이미지 파싱 성공! '+allParsed.length+'문제 추출완료</div>';
+            if(!S.questionBank) S.questionBank = [];
+            allParsed.forEach(function(q){
+              S.questionBank.push({...q, id: Date.now() + Math.floor(Math.random()*1000)});
+            });
+            saveState(); render();
+            toast('✅ PDF에서 ' + allParsed.length + '개 문제를 추출했습니다!');
+            if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#15803d">✅ PDF 이미지 파싱 성공! '+allParsed.length+'문제 저장완료!</div>';
             return;
           }
         }
