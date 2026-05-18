@@ -2,1154 +2,1387 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#D85A30">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#FF6B6B">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="매일-스터디">
-<meta name="description" content="가족 강제 학습 앱 — 수학·영어 + 보상 시스템">
-<title>매일-스터디</title>
-<link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./icons/icon-192.png">
-<link rel="apple-touch-icon" href="./icons/icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<title>매일-스터디 v3.0</title>
+<link rel="manifest" href="./manifest.json" id="pwa-manifest">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-
-<!-- ════════════════════════════════════════════
-     🔥 Firebase 설정 (아래 값을 교체해주세요!)
-     Firebase Console → 프로젝트 설정 → 앱 추가
-     ════════════════════════════════════════════ -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging.js";
-
-  /* ⚠️ 여기에 Firebase 설정값을 넣으세요! */
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window._db = db;
-  window._firebase = { doc, setDoc, getDoc, onSnapshot, collection };
-  window._firebaseReady = true;
-  console.log('[Firebase] 초기화 완료');
-</script>
-
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-/* ══════════════════════════════════════
-   전역 스타일
-   ══════════════════════════════════════ */
-:root {
-  --coral:     #D85A30;
-  --coral-l:   #F0997B;
-  --coral-ll:  #FAECE7;
-  --coral-d:   #993C1D;
-  --teal:      #1D9E75;
-  --teal-l:    #5DCAA5;
-  --teal-ll:   #E1F5EE;
-  --teal-d:    #0F6E56;
-  --amber:     #BA7517;
-  --amber-l:   #FAC775;
-  --amber-ll:  #FAEEDA;
-  --red:       #A32D2D;
-  --red-l:     #F7C1C1;
-  --red-ll:    #FCEBEB;
-  --navy:      #2C3E50;
-  --gray:      #888780;
-  --gray-l:    #F5F5F3;
-  --white:     #FFFFFF;
-  --border:    #E0E0DC;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; }
-body {
-  font-family: 'Noto Sans KR', -apple-system, sans-serif;
-  background: var(--gray-l);
-  color: var(--navy);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* 앱 컨테이너 */
-#app {
-  max-width: 430px;
-  margin: 0 auto;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--white);
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 0 30px rgba(0,0,0,0.12);
-}
-
-/* ── 네비게이션 바 (윈도우식 이전/앞전) ── */
-#nav-bar {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  background: #F8F8F6;
-  border-bottom: 0.5px solid var(--border);
-  padding: 4px 8px;
-  gap: 6px;
-  height: 38px;
-  user-select: none;
-}
-.nav-btn {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  border-radius: 6px;
-  padding: 4px 9px;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  flex-shrink: 0;
-  white-space: nowrap;
-  border: none;
-}
-.nav-btn-on {
-  border: 0.5px solid var(--border);
-  background: var(--white);
-  color: var(--navy);
-}
-.nav-btn-on:hover { background: #F0F0EE; }
-.nav-btn-on:active { transform: scale(0.97); }
-.nav-btn-off {
-  border: 0.5px solid transparent;
-  background: transparent;
-  color: #BDBDBD;
-  cursor: default;
-}
-#nav-crumb {
-  flex: 1;
-  text-align: center;
-  font-size: 10px;
-  color: var(--gray);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0 4px;
-}
-
-/* ── 화면 스크롤 영역 ── */
-#screen-wrap {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-}
-
-/* ── 공통 컴포넌트 ── */
-.screen { animation: fadeUp 0.25s ease both; }
-
-@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
-@keyframes popIn { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
-@keyframes starRise { 0% { transform: translateY(0); opacity: 0.7; } 100% { transform: translateY(-100px); opacity: 0; } }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.hdr { padding: 16px 16px 12px; border-bottom: 0.5px solid var(--border); }
-.hdr-coral { background: var(--coral-ll); border-bottom-color: var(--coral-l); }
-.hdr-teal  { background: var(--teal-ll);  border-bottom-color: var(--teal-l);  }
-.hdr-amber { background: var(--amber-ll); border-bottom-color: var(--amber-l); }
-.hdr-red   { background: var(--red-ll);   border-bottom-color: var(--red-l);   }
-
-.card {
-  background: var(--white);
-  border: 0.5px solid var(--border);
-  border-radius: 14px;
-  padding: 14px;
-}
-
-.tag {
-  display: inline-block;
-  border-radius: 20px;
-  padding: 3px 10px;
-  font-size: 11px;
-  font-weight: 500;
-}
-.tc { background: var(--coral-ll); color: var(--coral-d); }
-.tt { background: var(--teal-ll);  color: var(--teal-d);  }
-.ta { background: var(--amber-ll); color: var(--amber);    }
-.tr { background: var(--red-ll);   color: var(--red);      }
-
-/* 버튼 */
-.btn { border: none; border-radius: 10px; padding: 13px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; width: 100%; transition: opacity 0.15s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-.btn:active { transform: scale(0.97); opacity: 0.88; }
-.btn-c { background: var(--coral);  color: white; }
-.btn-t { background: var(--teal);   color: white; }
-.btn-r { background: var(--red-ll); color: var(--red); border: 0.5px solid var(--red-l); }
-.btn-g { background: #F0F0EE; color: var(--gray); border: 0.5px solid var(--border); padding: 10px 14px; font-size: 13px; }
-
-/* 인풋 */
-input[type="text"], input[type="password"] {
-  width: 100%;
-  padding: 12px 14px;
-  border: 0.5px solid var(--border);
-  border-radius: 10px;
-  font-size: 16px;
-  font-family: inherit;
-  background: var(--white);
-  color: var(--navy);
-  outline: none;
-  transition: border 0.15s;
-}
-input[type="text"]:focus,
-input[type="password"]:focus { border: 0.5px solid var(--coral); }
-
-/* 프로그레스 바 */
-.pt { background: #EBEBEB; border-radius: 4px; height: 7px; overflow: hidden; }
-.pf { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
-
-/* 탭 바 */
-.tab-bar { display: flex; border-bottom: 0.5px solid var(--border); background: var(--white); }
-.tb { flex: 1; padding: 9px 2px 7px; border: none; background: transparent; font-family: inherit; font-size: 10px; font-weight: 500; color: var(--gray); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.tb i { font-size: 17px; }
-.tb.act { color: var(--coral); border-bottom: 2px solid var(--coral); }
-
-/* 채점 버튼 */
-.ob { width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 21px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; border: none; }
-.oon { border: 2px solid var(--teal) !important; background: var(--teal-ll); animation: popIn 0.25s ease; }
-.oof { border: 0.5px solid var(--border) !important; background: var(--white); }
-.xon { border: 2px solid var(--coral) !important; background: var(--coral-ll); animation: popIn 0.25s ease; }
-.xof { border: 0.5px solid var(--border) !important; background: var(--white); }
-
-/* 오답노트 뱃지 */
-.sb { background: var(--teal-ll); color: var(--teal-d); border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 500; }
-.ub { background: var(--red-ll);  color: var(--red);    border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 500; }
-
-/* 잠금 오버레이 */
-#lock-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.95);
-  z-index: 9999;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  text-align: center;
-  padding: 32px 20px;
-}
-#lock-overlay.active { display: flex; }
+:root{--coral:#FF6B6B;--coral-d:#E05252;--coral-l:#FFB4B4;--coral-ll:#FFF0F0;--mint:#4ECDC4;--mint-d:#3DBDB5;--mint-l:#A8E6E2;--mint-ll:#E8F8F7;--amber:#F7B731;--amber-d:#E0A020;--amber-ll:#FAEEDA;--navy:#2C3E50;--gray:#888;--gray-l:#F5F5F3;--border:#E0E0DC;--white:#fff;--red:#E74C3C;--green:#2ECC71;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:'Noto Sans KR',sans-serif}
+body{background:#F0F0EE}
+#app{max-width:430px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:var(--white);overflow:hidden;box-shadow:0 0 40px rgba(0,0,0,.15)}
+#nav-bar{flex-shrink:0;display:flex;align-items:center;background:#F8F8F6;border-bottom:.5px solid var(--border);padding:4px 8px;gap:6px;height:38px}
+.nav-btn{display:flex;align-items:center;gap:3px;border-radius:6px;padding:4px 9px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;flex-shrink:0;white-space:nowrap;border:none}
+.nav-on{border:.5px solid var(--border)!important;background:var(--white);color:var(--navy)}.nav-on:hover{background:var(--gray-l)}
+.nav-off{background:transparent;color:#ccc;cursor:default}
+#nav-crumb{flex:1;text-align:center;font-size:10px;color:var(--gray);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+#sw{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.screen{animation:fadeUp .25s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes popIn{0%{transform:scale(0);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes starRise{0%{transform:translateY(0);opacity:.7}100%{transform:translateY(-100px);opacity:0}}
+.hdr{padding:14px 16px 12px;border-bottom:.5px solid var(--border)}.hdr-coral{background:var(--coral-ll);border-bottom-color:var(--coral-l)}.hdr-mint{background:var(--mint-ll);border-bottom-color:var(--mint-l)}.hdr-amber{background:var(--amber-ll);border-bottom-color:#FAC775}.hdr-red{background:#FCEBEB;border-bottom-color:#F7C1C1}.hdr-navy{background:var(--navy);color:var(--white);border-bottom-color:#1a252f}
+.card{background:var(--white);border:.5px solid var(--border);border-radius:14px;padding:14px}
+.tag{display:inline-block;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500}.tc{background:var(--coral-ll);color:#C0392B}.tm{background:var(--mint-ll);color:#0E6E56}.ta{background:var(--amber-ll);color:#854F0B}.tr{background:#FCEBEB;color:#A32D2D}
+input[type=text],input[type=password],input[type=number],select,textarea{width:100%;padding:11px 13px;border:.5px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;background:var(--white);color:var(--navy);outline:none;transition:border .15s}
+input[type=text]:focus,input[type=password]:focus,input[type=number]:focus,select:focus,textarea:focus{border:.5px solid var(--coral)}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+.btn{border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;width:100%;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}.btn:active{transform:scale(.97);opacity:.88}
+.btn-c{background:var(--coral);color:var(--white)}.btn-m{background:var(--mint);color:var(--white)}.btn-n{background:var(--navy);color:var(--white)}.btn-g{background:var(--gray-l);color:var(--gray);border:.5px solid var(--border);font-size:13px;padding:10px}.btn-r{background:#FCEBEB;color:#A32D2D;border:.5px solid #F7C1C1}.btn-a{background:var(--amber-ll);color:var(--amber-d);border:.5px solid #FAC775}
+.pt{background:#EBEBEB;border-radius:4px;height:7px;overflow:hidden}.pf{height:100%;border-radius:4px;transition:width .8s ease}
+.tab-bar{display:flex;border-bottom:.5px solid var(--border);background:var(--white);overflow-x:auto}
+.tb{flex:1;flex-shrink:0;padding:9px 4px 7px;border:none;background:transparent;font-family:inherit;font-size:10px;font-weight:500;color:var(--gray);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px}.tb i{font-size:17px}.tb.act{color:var(--coral);border-bottom:2px solid var(--coral)}
+.ob{width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all .2s;border:none}
+.oon{border:2px solid var(--green)!important;background:#E8F8F0;animation:popIn .25s ease}.oof{border:.5px solid var(--border)!important;background:var(--white)}.xon{border:2px solid var(--coral)!important;background:var(--coral-ll);animation:popIn .25s ease}.xof{border:.5px solid var(--border)!important;background:var(--white)}
+.word-card{perspective:800px;cursor:pointer;height:180px;margin-bottom:12px}.word-card-inner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}.word-card.flipped .word-card-inner{transform:rotateY(180deg)}.word-card-front,.word-card-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:.5px solid var(--border);padding:20px}.word-card-front{background:#F0FBF9}.word-card-back{background:var(--coral-ll);transform:rotateY(180deg)}
+.ai-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:var(--white);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
+#lock-overlay{position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;color:var(--white);text-align:center;padding:32px 20px}#lock-overlay.active{display:flex}
+.sb{background:var(--mint-ll);color:var(--mint-d);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500}.ub{background:#FCEBEB;color:#A32D2D;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500}
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:8000;display:none;align-items:flex-end;justify-content:center}#modal-overlay.open{display:flex}
+#modal-box{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-width:430px;max-height:88vh;overflow-y:auto;padding:20px 18px 32px;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:var(--gray-l);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:16px;color:var(--gray);display:flex;align-items:center;justify-content:center}
+.modal-field{margin-bottom:12px}.modal-field label{font-size:12px;color:var(--gray);display:block;margin-bottom:5px;font-weight:500}
+.modal-row{display:flex;gap:8px}.modal-row .btn{flex:1}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(44,62,80,.92);color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:500;z-index:9000;display:none;white-space:nowrap;backdrop-filter:blur(4px)}#toast.show{display:block;animation:toastIn .25s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
-
-<!-- ════════════ 앱 컨테이너 ════════════ -->
+<script>
+  if (window.location.protocol === 'file:') {
+    const manifestLink = document.getElementById('pwa-manifest');
+    if (manifestLink) manifestLink.remove();
+    console.warn("로컬(file://) 환경에서는 PWA 기능이 차단되어 매니페스트를 불러오지 않습니다. 브라우저 테스트 용도로 정상 작동합니다.");
+  }
+</script>
 <div id="app">
   <div id="nav-bar">
-    <button id="btn-back" class="nav-btn nav-btn-off" onclick="navBack()" disabled aria-label="이전 화면">
-      <i class="ti ti-arrow-left" style="font-size:13px"></i> 이전
-    </button>
-    <div id="nav-crumb">매일-스터디 홈</div>
-    <button id="btn-fwd" class="nav-btn nav-btn-off" onclick="navForward()" disabled aria-label="앞 화면">
-      앞전 <i class="ti ti-arrow-right" style="font-size:13px"></i>
-    </button>
+    <button id="btn-back" class="nav-btn nav-off" onclick="navBack()" disabled aria-label="이전 화면"><i class="ti ti-arrow-left" style="font-size:13px" aria-hidden="true"></i> 이전</button>
+    <div id="nav-crumb">매일-스터디</div>
+    <button id="btn-fwd" class="nav-btn nav-off" onclick="navForward()" disabled aria-label="앞 화면">앞전 <i class="ti ti-arrow-right" style="font-size:13px" aria-hidden="true"></i></button>
   </div>
-  <div id="screen-wrap"></div>
+  <div id="sw"></div>
 </div>
-
-<!-- ════════════ 학습 잠금 오버레이 ════════════ -->
 <div id="lock-overlay">
-  <i class="ti ti-lock" style="font-size:48px;margin-bottom:12px;color:#F0997B"></i>
-  <div style="font-size:20px;font-weight:900;margin-bottom:8px">📚 학습 시간이에요!</div>
-  <div style="font-size:14px;opacity:0.8;margin-bottom:24px">관리자가 설정한 학습 시간입니다</div>
-  <button onclick="dismissLock()" style="background:#D85A30;color:white;border:none;border-radius:12px;padding:14px 32px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
-    지금 공부하기 →
-  </button>
-</div>
-
-<script>
-/* ════════════════════════════════════════════════════════
-   매일-스터디 앱 메인 스크립트
-   ════════════════════════════════════════════════════════ */
-
-/* ── 데이터 상수 ── */
-const QUOTES = [
-  { text: "천 리 길도 한 걸음부터.", sub: "오늘 이 한 걸음이 미래를 바꿔!", author: "노자", icon: "ti-seedling" },
-  { text: "공부는 절대 배신하지 않아!", sub: "지금 열심히 하는 하은이가 최고야!", author: "격언", icon: "ti-book" },
-  { text: "어제보다 나은 오늘의 하은이!", sub: "조금씩 자라는 게 가장 대단한 거야!", author: "아빠 용국", icon: "ti-heart" },
-  { text: "꿈을 향해 한 발짝씩!", sub: "포기하지 마, 엄마가 항상 응원해!", author: "엄마 은경", icon: "ti-flower" },
-  { text: "틀려도 괜찮아, 다시 하면 돼!", sub: "포기하지 않는 하은이가 진짜 멋있어!", author: "격언", icon: "ti-refresh" },
-  { text: "오늘 힘들어야 내일이 편해!", sub: "지금의 노력이 빛나는 미래를 만들어!", author: "격언", icon: "ti-flame" },
-  { text: "공부한 만큼 커지는 꿈!", sub: "오늘도 최선을 다하는 하은이 파이팅!", author: "매일-스터디", icon: "ti-trophy" },
-];
-
-/* ── 수학 문제 은행 (중1) ── */
-const MATH_PROBLEMS = [
-  /* 정수와 유리수 */
-  { id: 101, grade: "중1", unit: "정수와 유리수", diff: "하", q: "다음을 계산하시오\n(-3) + (-5) = □", ans: "-8", hints: ["음수끼리는 절댓값을 더하고 (-)를 붙여요", "3+5=8, 그러면 부호는?", "정답은 -8이에요!"], exp: "음수+음수: -(|a|+|b|)=-(3+5)=-8" },
-  { id: 102, grade: "중1", unit: "정수와 유리수", diff: "하", q: "다음을 계산하시오\n4 × (-3) = □", ans: "-12", hints: ["양수×음수 = 반드시 음수!", "4×3=12, 그러면 부호는?", "정답은 -12예요!"], exp: "(양수)×(음수)=음수, 4×3=12 → -12" },
-  { id: 103, grade: "중1", unit: "정수와 유리수", diff: "중", q: "다음을 계산하시오\n(-2) × (-4) = □", ans: "8", hints: ["음수×음수 = 양수예요!", "2×4=8, 부호는?", "정답은 8이에요!"], exp: "(음수)×(음수)=양수, 2×4=8 → +8" },
-  /* 문자와 식 */
-  { id: 201, grade: "중1", unit: "문자와 식", diff: "중", q: "다음 식을 간단히 하시오\n3x + 2x - x = □", ans: "4x", hints: ["x가 붙은 계수끼리만 더하고 빼요", "3+2-1=?", "정답은 4x예요!"], exp: "동류항: (3+2-1)x=4x" },
-  { id: 202, grade: "중1", unit: "문자와 식", diff: "하", q: "다음 식을 간단히 하시오\n5a - 2a = □", ans: "3a", hints: ["a가 붙은 계수끼리만 빼요", "5-2=?", "정답은 3a예요!"], exp: "(5-2)a=3a" },
-  /* 일차방정식 */
-  { id: 301, grade: "중1", unit: "일차방정식", diff: "중", q: "방정식을 푸시오\n2x + 3 = 11\nx = □", ans: "4", hints: ["양쪽에서 3을 빼보세요", "2x=8, 양쪽을 2로 나눠요", "x=4예요!"], exp: "2x+3=11 → 2x=8 → x=4" },
-  { id: 302, grade: "중1", unit: "일차방정식", diff: "상", q: "방정식을 푸시오\n3x - 7 = 2x + 1\nx = □", ans: "8", hints: ["x항을 왼쪽, 숫자를 오른쪽으로", "3x-2x = 1+7", "x=8이에요!"], exp: "3x-2x=1+7 → x=8" },
-  /* 비와 비율 */
-  { id: 401, grade: "중1", unit: "비와 비율", diff: "하", q: "가장 간단한 비로 나타내시오\n6 : 4 = □", ans: "3:2", hints: ["6과 4의 최대공약수를 찾아요", "최대공약수는 2예요", "6÷2 : 4÷2 = 3:2"], exp: "최대공약수(2): 6÷2=3, 4÷2=2 → 3:2" },
-];
-
-/* ── 영어 단어장 ── */
-const ENG_WORDS = [
-  { word: "beautiful", meaning: "아름다운", example: "She is beautiful." },
-  { word: "study", meaning: "공부하다", example: "I study every day." },
-  { word: "knowledge", meaning: "지식", example: "Knowledge is power." },
-  { word: "important", meaning: "중요한", example: "Education is important." },
-  { word: "challenge", meaning: "도전", example: "Don't give up the challenge." },
-  { word: "success", meaning: "성공", example: "Hard work leads to success." },
-  { word: "dream", meaning: "꿈", example: "Follow your dream." },
-  { word: "effort", meaning: "노력", example: "Your effort will pay off." },
-  { word: "future", meaning: "미래", example: "Study for your future." },
-  { word: "practice", meaning: "연습하다", example: "Practice makes perfect." },
-];
-
-/* ── 보상 목록 기본값 ── */
-const DEFAULT_REWARDS = [
-  { id: 1, name: "에어팟 프로", price: 200000, icon: "ti-headphones" },
-  { id: 2, name: "치킨 파티", price: 20000, icon: "ti-tools-kitchen-2" },
-  { id: 3, name: "영화 관람권", price: 15000, icon: "ti-movie" },
-];
-
-/* ── 앱 상태 (LocalStorage에 자동 저장/복원) ── */
-function loadState() {
-  try {
-    const saved = localStorage.getItem('maeil-study-state');
-    return saved ? JSON.parse(saved) : null;
-  } catch { return null; }
-}
-function saveState() {
-  try { localStorage.setItem('maeil-study-state', JSON.stringify(S)); } catch {}
-}
-
-const defaultState = {
-  screen: 'login', user: null,
-  qIdx: 0, qTimer: null,
-  answers: {}, hintLevel: {}, graded: {},
-  rIds: [], rAnswers: {}, rHints: {}, rGraded: {},
-  credits: 0, adminTab: 'dash',
-  curP: 0, curR: 0,
-  odapNote: [], round: 1, firstCorrect: 0,
-  rewards: DEFAULT_REWARDS,
-  creditPerQ: 500,
-  schedules: [
-    { id: 1, time: '19:00', label: '저녁 7시', subj: '수학', count: 5, days: '매일', diff: '중', active: true },
-    { id: 2, time: '21:00', label: '밤 9시',  subj: '수학', count: 5, days: '평일', diff: '하', active: true },
-  ],
-  adminPassword: '1234', /* ⚠️ 앱 설치 후 반드시 변경하세요! */
-};
-
-let S = loadState() || { ...defaultState };
-
-/* ══ 네비게이션 히스토리 시스템 (윈도우식) ══ */
-let NH = ['login'], NP = 0;
-
-const SCREEN_TITLES = {
-  login: '매일-스터디 홈', motivational: '학습 명언', study: '1차 학습 중',
-  waiting: '채점 대기 중', adminGrade: '관리자 채점 1차', retry: '재도전 학습',
-  retryWaiting: '재채점 대기', adminRetryGrade: '관리자 재채점', approved: '학습 완료 ✓',
-  studentHome: '하은이 홈', admin: '관리자 홈',
-};
-
-try { window.history.replaceState({ p: 0 }, ''); } catch {}
-
-function go(s) {
-  NH = NH.slice(0, NP + 1);
-  NH.push(s);
-  NP = NH.length - 1;
-  S.screen = s;
-  saveState();
-  try { window.history.pushState({ p: NP }, ''); } catch {}
-  render();
-}
-
-function navBack() {
-  if (NP > 0) { NP--; S.screen = NH[NP]; render(); }
-}
-
-function navForward() {
-  if (NP < NH.length - 1) { NP++; S.screen = NH[NP]; render(); }
-}
-
-/* 안드로이드 물리 뒤로가기 버튼 */
-window.addEventListener('popstate', function () {
-  if (NP > 0) { NP--; S.screen = NH[NP]; render(); }
-  else { try { window.history.pushState({ p: 0 }, ''); } catch {} }
-});
-
-function updateNavBar() {
-  const canB = NP > 0, canF = NP < NH.length - 1;
-  const backBtn = document.getElementById('btn-back');
-  const fwdBtn  = document.getElementById('btn-fwd');
-  const crumb   = document.getElementById('nav-crumb');
-  if (!backBtn) return;
-
-  backBtn.className = 'nav-btn ' + (canB ? 'nav-btn-on' : 'nav-btn-off');
-  backBtn.disabled  = !canB;
-  fwdBtn.className  = 'nav-btn ' + (canF ? 'nav-btn-on' : 'nav-btn-off');
-  fwdBtn.disabled   = !canF;
-
-  /* 경로 빵부스러기 (현재 + 이전 최대 2개) */
-  const crumbItems = NH.slice(Math.max(0, NP - 2), NP + 1)
-    .map((s, i, arr) => {
-      const isLast = i === arr.length - 1;
-      return `<span style="color:${isLast ? '#2C3E50' : '#888780'};font-weight:${isLast ? '500' : '400'}">${SCREEN_TITLES[s] || s}</span>`;
-    }).join('<span style="margin:0 3px;color:#BDBDBD">›</span>');
-  crumb.innerHTML = crumbItems;
-}
-
-/* ══ 잠금 해제 코드 처리 ══ */
-let lockPending = false;
-function dismissLock() {
-  document.getElementById('lock-overlay').classList.remove('active');
-  go('motivational');
-}
-
-/* ══ 알림 권한 요청 ══ */
-async function requestNotifications() {
-  if (!('Notification' in window)) return;
-  if (Notification.permission !== 'granted') {
-    await Notification.requestPermission();
-  }
-}
-
-/* ══ 예약 알림 설정 ══ */
-function scheduleNotification(timeStr, message) {
-  const [h, m] = timeStr.split(':').map(Number);
-  const now = new Date();
-  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
-  let ms = target - now;
-  if (ms < 0) ms += 86400000; /* 내일로 */
-
-  setTimeout(() => {
-    if (Notification.permission === 'granted') {
-      new Notification('📚 매일-스터디', {
-        body: message,
-        icon: './icons/icon-192.png',
-        vibrate: [200, 100, 200],
-        tag: 'study-time',
-      });
-    }
-    document.getElementById('lock-overlay').classList.add('active');
-  }, ms);
-}
-
-/* ════════════════════════════════════════
-   화면 렌더링 함수들
-   ════════════════════════════════════════ */
-function render() {
-  updateNavBar();
-  const screens = {
-    login: screenLogin, motivational: screenMotivational, study: screenStudy,
-    waiting: screenWaiting, adminGrade: screenAdminGrade, retry: screenRetry,
-    retryWaiting: screenRetryWaiting, adminRetryGrade: screenAdminRetryGrade,
-    approved: screenApproved, studentHome: screenStudentHome, admin: screenAdmin,
-  };
-  const sw = document.getElementById('screen-wrap');
-  const fn = screens[S.screen];
-  sw.innerHTML = fn ? fn() : '<div style="padding:40px;text-align:center;color:#888">화면을 찾을 수 없어요</div>';
-  sw.scrollTop = 0;
-}
-
-/* ── 로그인 화면 ── */
-function screenLogin() {
-  const members = [
-    { n: '용국', r: 'admin', sub: '아빠 · 관리자', i: 'ti-user-circle', c: 'var(--teal)',  bg: 'var(--teal-ll)' },
-    { n: '은경', r: 'admin', sub: '엄마 · 관리자', i: 'ti-user-heart', c: 'var(--coral)', bg: 'var(--coral-ll)' },
-    { n: '하은', r: 'student', sub: '딸 · 학생', i: 'ti-star', c: 'var(--amber)', bg: 'var(--amber-ll)' },
-  ];
-  return `
-  <div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;background:#FAFAF8">
-    <div style="text-align:center;margin-bottom:28px">
-      <i class="ti ti-book-2" style="font-size:48px;color:var(--coral);display:block;margin-bottom:8px;animation:floatY 3s ease-in-out infinite"></i>
-      <div style="font-size:24px;font-weight:900;color:var(--navy)">매일<span style="color:var(--teal)">-</span>스터디</div>
-      <div style="font-size:12px;color:var(--gray);margin-top:4px">가족을 선택하세요</div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px">
-      ${members.map((m, idx) => `
-        <button onclick="loginAs('${m.n}','${m.r}')" style="background:${m.bg};border:0.5px solid ${m.c};border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;width:100%;font-family:inherit;animation:fadeUp 0.35s ease ${idx*0.08}s both">
-          <i class="ti ${m.i}" style="font-size:24px;color:${m.c};flex-shrink:0"></i>
-          <div style="text-align:left;flex:1">
-            <div style="font-size:16px;font-weight:700;color:${m.c}">${m.n}</div>
-            <div style="font-size:11px;color:var(--gray)">${m.sub}</div>
-          </div>
-          <i class="ti ti-chevron-right" style="color:${m.c};font-size:15px"></i>
-        </button>`).join('')}
-    </div>
-    <div style="margin-top:22px;font-size:11px;color:var(--gray)">
-      <i class="ti ti-star"></i> 오늘도 열심히 공부해요! <i class="ti ti-star"></i>
-    </div>
-  </div>`;
-}
-
-/* ── 명언 화면 ── */
-function screenMotivational() {
-  const q = QUOTES[S.qIdx];
-  const dots = QUOTES.map((_, i) => `<span style="display:inline-block;width:${i===S.qIdx?'16px':'5px'};height:5px;border-radius:3px;background:${i===S.qIdx?'var(--coral)':'var(--coral-l)'};margin:0 2px;transition:all .3s"></span>`).join('');
-  const stars = [0,1,2,3,4].map(i => `<span style="position:absolute;left:${8+i*18}%;bottom:-8px;font-size:${11+i%3*4}px;animation:starRise ${2+i*.5}s ${i*.3}s ease-in infinite;opacity:.4">${['✦','✧','❋','✿','★'][i]}</span>`).join('');
-
-  /* 명언 자동 순환 */
-  if (!window._qTimer) {
-    window._qTimer = setInterval(() => {
-      S.qIdx = (S.qIdx + 1) % QUOTES.length;
-      const el = document.getElementById('qi');
-      if (el) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = 'fadeUp .4s ease'; el.innerHTML = buildQuoteInner(); }
-    }, 6000);
-  }
-
-  return `
-  <div class="screen" style="background:var(--coral-ll);min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 18px;position:relative;overflow:hidden">
-    ${stars}
-    <div style="position:absolute;top:-50px;right:-50px;width:150px;height:150px;border-radius:50%;background:var(--coral-l);opacity:.15"></div>
-    <div id="qc" class="card" style="width:100%;max-width:360px;padding:24px 20px;position:relative;z-index:2;border-color:var(--coral-l)">
-      <div id="qi">${buildQuoteInner()}</div>
-    </div>
-    <p style="margin-top:16px;font-size:11px;color:var(--coral-d);font-weight:500;position:relative;z-index:2">
-      <i class="ti ti-heart"></i> 하은이를 항상 응원해! <i class="ti ti-heart"></i>
-    </p>
-  </div>`;
-}
-
-function buildQuoteInner() {
-  const q = QUOTES[S.qIdx];
-  const dots = QUOTES.map((_, i) => `<span style="display:inline-block;width:${i===S.qIdx?'16px':'5px'};height:5px;border-radius:3px;background:${i===S.qIdx?'var(--coral)':'var(--coral-l)'};margin:0 2px"></span>`).join('');
-  return `
-    <i class="ti ${q.icon}" style="font-size:44px;color:var(--coral);display:block;text-align:center;margin-bottom:12px;animation:floatY 2.5s ease-in-out infinite"></i>
-    <div class="tag tc" style="display:block;text-align:center;margin-bottom:12px"><i class="ti ti-lock"></i> 오늘 · 수학 5문제 · 중1 · 난이도 하</div>
-    <blockquote style="font-size:20px;font-weight:900;color:var(--navy);line-height:1.45;text-align:center;margin-bottom:8px;word-break:keep-all">"${q.text}"</blockquote>
-    <p style="font-size:13px;color:var(--coral);font-weight:500;text-align:center;margin-bottom:4px">${q.sub}</p>
-    <p style="font-size:11px;color:var(--gray);text-align:center;margin-bottom:18px">— ${q.author}</p>
-    <div style="text-align:center;margin-bottom:18px">${dots}</div>
-    <button class="btn btn-c" onclick="startStudy()"><i class="ti ti-bolt"></i> 공부 시작하기!</button>
-    <button class="btn btn-g" onclick="go('studentHome')" style="margin-top:8px">홈으로 가기</button>`;
-}
-
-/* ── 학습 화면 ── */
-function screenStudy() {
-  const problems = getStudyProblems();
-  const p = problems[S.curP];
-  if (!p) return '<div style="padding:40px;text-align:center">문제를 불러오는 중...</div>';
-  const allDone = problems.every(pr => S.answers[pr.id] && S.answers[pr.id].trim());
-  const hl = S.hintLevel[p.id] || 0;
-  return `
-  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
-    <div class="hdr hdr-coral">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:14px;font-weight:700;color:var(--coral-d)"><i class="ti ti-lock"></i> 학습 중 · 1차</div>
-        <div class="tag tc">${S.curP+1} / ${problems.length}</div>
-      </div>
-      <div class="pt"><div class="pf" style="width:${((S.curP+1)/problems.length)*100}%;background:var(--coral)"></div></div>
-    </div>
-    <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px">
-      <div class="card">
-        <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap">
-          <span class="tag tt">${p.unit}</span><span class="tag ta">난이도 ${p.diff}</span>
-        </div>
-        <div style="background:#F8F8F6;border-radius:10px;padding:12px;margin-bottom:10px;white-space:pre-line;font-size:17px;font-weight:500;color:var(--navy);line-height:1.6">
-          <i class="ti ti-pencil" style="color:var(--coral)"></i>  ${p.q}
-        </div>
-        <label style="font-size:11px;color:var(--gray);display:block;margin-bottom:5px">✏️ 내 답안</label>
-        <input type="text" id="ans_${p.id}" value="${S.answers[p.id]||''}" placeholder="답을 입력하세요" 
-               oninput="S.answers[${p.id}]=this.value" onchange="saveState()">
-        ${S.answers[p.id] ? '<p style="font-size:10px;color:var(--teal);margin-top:3px"><i class="ti ti-check"></i> 저장됨</p>' : ''}
-      </div>
-      <div class="card">
-        <button onclick="useHint(${p.id})" ${hl>=3?'disabled':''} 
-                style="background:${hl<3?'var(--amber-ll)':'#F0F0EE'};color:${hl<3?'var(--amber)':'var(--gray)'};border:0.5px dashed ${hl<3?'var(--amber-l)':'var(--border)'};border-radius:10px;padding:9px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;width:100%">
-          <i class="ti ti-bulb"></i>  힌트 보기 (${hl}/3회)
-        </button>
-        ${hl > 0 ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
-          ${p.hints.slice(0,hl).map(h => `<div style="background:#F8F8F6;border-radius:8px;padding:8px 10px;font-size:12px;color:var(--navy)">${h}</div>`).join('')}
-        </div>` : ''}
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-g" onclick="S.curP=Math.max(0,S.curP-1);render()" ${S.curP===0?'disabled':''} style="flex:1;padding:10px">
-          <i class="ti ti-arrow-left"></i> 이전
-        </button>
-        <button onclick="S.curP=Math.min(${problems.length-1},S.curP+1);render()" ${S.curP===problems.length-1?'disabled':''}
-                style="flex:1;background:${S.curP===problems.length-1?'#F0F0EE':'var(--teal)'};color:${S.curP===problems.length-1?'var(--gray)':'white'};border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px">
-          다음 <i class="ti ti-arrow-right"></i>
-        </button>
-      </div>
-      <div style="display:flex;gap:5px;justify-content:center">
-        ${problems.map((pr, i) => `<button onclick="S.curP=${i};render()" 
-          style="width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;
-                 background:${i===S.curP?'var(--coral)':S.answers[pr.id]?'var(--teal)':'#EBEBEB'};
-                 color:${(i===S.curP||S.answers[pr.id])?'white':'var(--gray)'}">${i+1}</button>`).join('')}
-      </div>
-      ${allDone
-        ? `<button class="btn btn-c" onclick="go('waiting')" style="animation:pulse 2s infinite"><i class="ti ti-send"></i> 답안 제출하기!</button>`
-        : `<p style="text-align:center;font-size:11px;color:var(--gray);padding:6px">모든 답안 입력 후 제출 (${Object.values(S.answers).filter(v=>v&&v.trim()).length}/${problems.length})</p>`}
-    </div>
-  </div>`;
-}
-
-function getStudyProblems() { return MATH_PROBLEMS.slice(0, 5); }
-
-/* ── 채점 대기 화면 ── */
-function screenWaiting() {
-  return `
-  <div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;background:#FAFAF8">
-    <i class="ti ti-hourglass" style="font-size:56px;color:var(--coral);animation:floatY 2s ease-in-out infinite;margin-bottom:16px"></i>
-    <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px">답안 제출 완료!</div>
-    <div style="font-size:13px;color:var(--gray);margin-bottom:24px">아빠 / 엄마가 채점 중이에요...</div>
-    <div style="display:flex;gap:8px;margin-bottom:32px">
-      ${[0,1,2].map(i => `<div style="width:10px;height:10px;border-radius:50%;background:var(--coral);animation:pulse 1.2s ${i*.2}s ease-in-out infinite"></div>`).join('')}
-    </div>
-    <div class="card" style="max-width:290px;text-align:center;padding:14px">
-      <p style="font-size:10px;color:var(--gray);margin-bottom:8px">관리자가 채점 버튼을 받았어요</p>
-      <button class="btn btn-t" onclick="go('adminGrade')"><i class="ti ti-clipboard-check"></i> 관리자 채점 (데모)</button>
-    </div>
-  </div>`;
-}
-
-/* ── 관리자 1차 채점 ── */
-function screenAdminGrade() {
-  const problems = getStudyProblems();
-  const allGraded = problems.every(p => S.graded[p.id] !== undefined);
-  const correctIds = problems.filter(p => S.graded[p.id] === true).map(p => p.id);
-  const wrongIds   = problems.filter(p => S.graded[p.id] === false).map(p => p.id);
-  const allCorrect = allGraded && wrongIds.length === 0;
-  const hasWrong   = allGraded && wrongIds.length > 0;
-
-  return `
-  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
-    <div class="hdr hdr-teal">
-      <div style="font-size:15px;font-weight:700;color:var(--teal-d)"><i class="ti ti-clipboard-check"></i> 하은이 답안 채점 · 1차</div>
-      <div style="font-size:11px;color:var(--gray);margin-top:2px">각 문제 확인 후 ⭕ / ❌ 를 눌러주세요</div>
-    </div>
-    <div style="display:flex;border-bottom:0.5px solid var(--border)">
-      <div style="flex:1;padding:10px;text-align:center;border-right:0.5px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--teal)">${correctIds.length}</div><div style="font-size:10px;color:var(--gray)">정답</div></div>
-      <div style="flex:1;padding:10px;text-align:center;border-right:0.5px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--coral)">${wrongIds.length}</div><div style="font-size:10px;color:var(--gray)">오답</div></div>
-      <div style="flex:1;padding:10px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--teal)">+${(correctIds.length*S.creditPerQ).toLocaleString()}원</div><div style="font-size:10px;color:var(--gray)">적립예정</div></div>
-    </div>
-    <div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px">
-      ${problems.map(p => {
-        const g = S.graded[p.id]; const isC = g===true; const isW = g===false;
-        return `
-        <div class="card" style="border-color:${isC?'var(--teal-l)':isW?'var(--coral-l)':'var(--border)'}">
-          <div style="display:flex;gap:8px;align-items:flex-start">
-            <div style="flex:1">
-              <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
-                <span class="tag tt" style="font-size:10px">${p.unit}</span>
-                <span class="tag ta" style="font-size:10px">난이도 ${p.diff}</span>
-              </div>
-              <div style="font-size:12px;color:var(--navy);white-space:pre-line;margin-bottom:8px;font-weight:500">${p.q}</div>
-              <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px">
-                <div><span style="color:var(--gray)">하은 답: </span><span style="font-size:15px;font-weight:700;color:${isW?'var(--coral)':isC?'var(--teal)':'var(--navy)'}">${S.answers[p.id]||'?'}</span></div>
-                <div><span style="color:var(--gray)">정답: </span><span style="font-weight:700;color:var(--teal)">${p.ans}</span></div>
-              </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-              <button onclick="S.graded[${p.id}]=true;saveState();render()" class="ob ${isC?'oon':'oof'}">⭕</button>
-              <button onclick="S.graded[${p.id}]=false;saveState();render()" class="ob ${isW?'xon':'xof'}">❌</button>
-            </div>
-          </div>
-          <div style="background:#F8F8F6;border-radius:8px;padding:7px 10px;margin-top:8px;font-size:11px;color:var(--gray)">
-            <i class="ti ti-notes"></i> ${p.exp}
-          </div>
-          ${isW ? `<div style="margin-top:7px;padding:7px 10px;background:var(--red-ll);border-radius:8px;border-left:3px solid var(--red-l);font-size:11px;color:var(--red);font-weight:500">
-            <i class="ti ti-arrow-back-up"></i> 오답노트 저장 후 재도전 예정
-          </div>` : ''}
-        </div>`;
-      }).join('')}
-
-      ${allCorrect ? `
-        <div style="background:var(--teal-ll);border-radius:14px;padding:14px;text-align:center;border:0.5px solid var(--teal-l)">
-          <i class="ti ti-circle-check" style="font-size:28px;color:var(--teal);display:block;margin-bottom:6px"></i>
-          <div style="font-size:14px;font-weight:700;color:var(--teal-d);margin-bottom:3px">모두 정답이에요! 🎉</div>
-          <div style="font-size:12px;color:var(--gray)">승인 후 핸드폰 잠금이 해제돼요</div>
-        </div>
-        <button class="btn btn-t" onclick="doApprove()"><i class="ti ti-lock-open"></i> ✅ 승인 · 핸드폰 잠금 해제!</button>`
-      : hasWrong ? `
-        <div style="background:var(--red-ll);border-radius:14px;padding:14px;border:0.5px solid var(--red-l)">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <i class="ti ti-alert-circle" style="font-size:22px;color:var(--coral);flex-shrink:0"></i>
-            <div>
-              <div style="font-size:13px;font-weight:700;color:var(--coral-d)">오답 ${wrongIds.length}개 발견!</div>
-              <div style="font-size:11px;color:var(--gray)">오답노트 저장 후 하은이가 다시 풀어요</div>
-            </div>
-          </div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
-            ${wrongIds.map(id => { const p = getStudyProblems().find(pr=>pr.id===id); return `<span class="tag tr" style="font-size:10px"><i class="ti ti-x" style="font-size:9px"></i> ${p?p.unit:id}</span>`; }).join('')}
-          </div>
-          <button class="btn btn-r" onclick="doReturn()"><i class="ti ti-arrow-back-up"></i> 🔄 오답 리턴 · 하은이에게 재도전 요청</button>
-        </div>`
-      : `<p style="text-align:center;font-size:12px;color:var(--gray);padding:10px">채점 진행 중... (${Object.keys(S.graded).length}/${problems.length})</p>`}
-    </div>
-  </div>`;
-}
-
-/* ── 재도전 화면 ── */
-function screenRetry() {
-  const rProblems = getStudyProblems().filter(p => S.rIds.includes(p.id));
-  if (!rProblems.length) return '<div style="padding:40px;text-align:center">재도전 문제 없음</div>';
-  const p = rProblems[S.curR];
-  const allDone = rProblems.every(pr => S.rAnswers[pr.id] && S.rAnswers[pr.id].trim());
-  const hl = S.rHints[p.id] || 0;
-  const note = S.odapNote.find(n => n.id === p.id);
-  return `
-  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
-    <div class="hdr hdr-red">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div>
-          <div style="font-size:14px;font-weight:700;color:var(--red)"><i class="ti ti-refresh"></i> 재도전! ${S.round}차</div>
-          <div style="font-size:11px;color:var(--gray);margin-top:1px">오답 ${rProblems.length}문제 다시 풀어요</div>
-        </div>
-        <div class="tag tr">${S.curR+1} / ${rProblems.length}</div>
-      </div>
-      <div class="pt"><div class="pf" style="width:${((S.curR+1)/rProblems.length)*100}%;background:var(--coral)"></div></div>
-    </div>
-    <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px">
-      <div style="background:var(--amber-ll);border:0.5px solid var(--amber-l);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--amber)">
-        <i class="ti ti-bulb"></i> 틀려도 괜찮아! 다시 도전하면 돼!
-      </div>
-      <div class="card">
-        <div style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap">
-          <span class="tag tt">${p.unit}</span>
-          <span class="tag tr" style="font-size:10px"><i class="ti ti-refresh"></i> 재도전</span>
-        </div>
-        <div style="background:#F8F8F6;border-radius:10px;padding:12px;margin-bottom:10px;white-space:pre-line;font-size:17px;font-weight:500;color:var(--navy);line-height:1.6">
-          <i class="ti ti-pencil" style="color:var(--coral)"></i>  ${p.q}
-        </div>
-        ${note ? `<div style="background:var(--red-ll);border-radius:8px;padding:7px 10px;margin-bottom:10px;font-size:12px;color:var(--red);border-left:3px solid var(--red-l)">
-          <span style="color:var(--gray)">이전에 틀린 답: </span><strong style="text-decoration:line-through">${note.wrongAns}</strong> ❌ → 이번엔 제대로!
-        </div>` : ''}
-        <label style="font-size:11px;color:var(--gray);display:block;margin-bottom:5px">✏️ 새 답안</label>
-        <input type="text" id="rans_${p.id}" value="${S.rAnswers[p.id]||''}" placeholder="다시 답을 입력하세요"
-               oninput="S.rAnswers[${p.id}]=this.value" onchange="saveState()">
-        ${S.rAnswers[p.id] ? '<p style="font-size:10px;color:var(--teal);margin-top:3px"><i class="ti ti-check"></i> 저장됨</p>' : ''}
-      </div>
-      <div class="card">
-        <button onclick="useRHint(${p.id})" ${hl>=3?'disabled':''}
-                style="background:${hl<3?'var(--amber-ll)':'#F0F0EE'};color:${hl<3?'var(--amber)':'var(--gray)'};border:0.5px dashed ${hl<3?'var(--amber-l)':'var(--border)'};border-radius:10px;padding:9px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;width:100%">
-          <i class="ti ti-bulb"></i>  힌트 (${hl}/3회)
-        </button>
-        ${hl > 0 ? `<div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">
-          ${p.hints.slice(0,hl).map(h=>`<div style="background:#F8F8F6;border-radius:8px;padding:8px 10px;font-size:12px">${h}</div>`).join('')}
-        </div>` : ''}
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-g" onclick="S.curR=Math.max(0,S.curR-1);render()" ${S.curR===0?'disabled':''} style="flex:1;padding:10px">
-          <i class="ti ti-arrow-left"></i> 이전
-        </button>
-        <button onclick="S.curR=Math.min(${rProblems.length-1},S.curR+1);render()" ${S.curR===rProblems.length-1?'disabled':''}
-                style="flex:1;background:${S.curR===rProblems.length-1?'#F0F0EE':'var(--coral)'};color:${S.curR===rProblems.length-1?'var(--gray)':'white'};border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px">
-          다음 <i class="ti ti-arrow-right"></i>
-        </button>
-      </div>
-      <div style="display:flex;gap:5px;justify-content:center">
-        ${rProblems.map((pr,i) => `<button onclick="S.curR=${i};render()" style="width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;background:${i===S.curR?'var(--coral)':S.rAnswers[pr.id]?'var(--teal)':'#EBEBEB'};color:${(i===S.curR||S.rAnswers[pr.id])?'white':'var(--gray)'}">${i+1}</button>`).join('')}
-      </div>
-      ${allDone
-        ? `<button class="btn btn-r" onclick="go('retryWaiting')" style="animation:pulse 2s infinite"><i class="ti ti-send"></i> 재도전 답안 제출!</button>`
-        : `<p style="text-align:center;font-size:11px;color:var(--gray);padding:6px">오답 전부 입력 후 제출 (${Object.values(S.rAnswers).filter(v=>v&&v.trim()).length}/${rProblems.length})</p>`}
-    </div>
-  </div>`;
-}
-
-/* ── 재채점 대기 ── */
-function screenRetryWaiting() {
-  return `
-  <div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;background:#FAFAF8">
-    <i class="ti ti-hourglass" style="font-size:56px;color:var(--coral);animation:floatY 2s ease-in-out infinite;margin-bottom:16px"></i>
-    <div class="tag tr" style="margin-bottom:12px"><i class="ti ti-refresh"></i> ${S.round}차 재도전 제출!</div>
-    <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px">재도전 답안 제출 완료!</div>
-    <div style="font-size:13px;color:var(--gray);margin-bottom:24px">이번엔 다 맞았을 거야! 😊</div>
-    <div style="display:flex;gap:8px;margin-bottom:32px">
-      ${[0,1,2].map(i=>`<div style="width:10px;height:10px;border-radius:50%;background:var(--coral);animation:pulse 1.2s ${i*.2}s ease-in-out infinite"></div>`).join('')}
-    </div>
-    <div class="card" style="max-width:290px;text-align:center;padding:14px">
-      <p style="font-size:10px;color:var(--gray);margin-bottom:8px">관리자 재채점 (데모)</p>
-      <button class="btn btn-t" onclick="go('adminRetryGrade')"><i class="ti ti-clipboard-check"></i> 관리자 재채점 화면으로</button>
-    </div>
-  </div>`;
-}
-
-/* ── 관리자 재채점 ── */
-function screenAdminRetryGrade() {
-  const rProblems = getStudyProblems().filter(p => S.rIds.includes(p.id));
-  const allGraded = rProblems.every(p => S.rGraded[p.id] !== undefined);
-  const correctIds = rProblems.filter(p => S.rGraded[p.id] === true).map(p=>p.id);
-  const wrongIds   = rProblems.filter(p => S.rGraded[p.id] === false).map(p=>p.id);
-  const allCorrect = allGraded && wrongIds.length === 0;
-  const hasWrong   = allGraded && wrongIds.length > 0;
-
-  return `
-  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
-    <div class="hdr hdr-red">
-      <div style="font-size:15px;font-weight:700;color:var(--red)"><i class="ti ti-clipboard-check"></i> 재도전 채점 · ${S.round}차</div>
-      <div style="font-size:11px;color:var(--gray);margin-top:2px">이전 오답과 새 답을 비교해요</div>
-    </div>
-    <div style="display:flex;border-bottom:0.5px solid var(--border)">
-      <div style="flex:1;padding:10px;text-align:center;border-right:0.5px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--teal)">${correctIds.length}</div><div style="font-size:10px;color:var(--gray)">정답</div></div>
-      <div style="flex:1;padding:10px;text-align:center;border-right:0.5px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--coral)">${wrongIds.length}</div><div style="font-size:10px;color:var(--gray)">오답</div></div>
-      <div style="flex:1;padding:10px;text-align:center"><div style="font-size:12px;font-weight:700;color:var(--teal)">총 ${S.firstCorrect+correctIds.length}/${getStudyProblems().length}</div><div style="font-size:10px;color:var(--gray)">최종 정답</div></div>
-    </div>
-    <div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px">
-      ${rProblems.map(p => {
-        const g = S.rGraded[p.id]; const isC=g===true; const isW=g===false;
-        const note = S.odapNote.find(n=>n.id===p.id);
-        return `
-        <div class="card" style="border-color:${isC?'var(--teal-l)':isW?'var(--coral-l)':'var(--border)'}">
-          <div style="display:flex;gap:8px;align-items:flex-start">
-            <div style="flex:1">
-              <div style="display:flex;gap:4px;margin-bottom:7px;flex-wrap:wrap">
-                <span class="tag tr" style="font-size:10px"><i class="ti ti-refresh"></i> ${S.round}차</span>
-                <span class="tag tt" style="font-size:10px">${p.unit}</span>
-              </div>
-              <div style="font-size:12px;color:var(--navy);white-space:pre-line;margin-bottom:8px;font-weight:500">${p.q}</div>
-              <div style="display:flex;flex-direction:column;gap:3px;font-size:11px">
-                ${note?`<div><span style="color:var(--gray)">이전 틀린 답: </span><span style="color:var(--coral);text-decoration:line-through">${note.wrongAns}</span> ❌</div>`:''}
-                <div><span style="color:var(--gray)">새로운 답: </span><span style="font-size:15px;font-weight:700;color:${isC?'var(--teal)':isW?'var(--coral)':'var(--navy)'}">${S.rAnswers[p.id]||'?'}</span></div>
-                <div><span style="color:var(--gray)">정답: </span><span style="font-weight:700;color:var(--teal)">${p.ans}</span></div>
-              </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-              <button onclick="S.rGraded[${p.id}]=true;saveState();render()" class="ob ${isC?'oon':'oof'}">⭕</button>
-              <button onclick="S.rGraded[${p.id}]=false;saveState();render()" class="ob ${isW?'xon':'xof'}">❌</button>
-            </div>
-          </div>
-          <div style="background:#F8F8F6;border-radius:8px;padding:7px 10px;margin-top:8px;font-size:11px;color:var(--gray)">
-            <i class="ti ti-notes"></i> ${p.exp}
-          </div>
-        </div>`;
-      }).join('')}
-      ${allCorrect ? `
-        <div style="background:var(--teal-ll);border-radius:14px;padding:14px;text-align:center;border:0.5px solid var(--teal-l)">
-          <i class="ti ti-circle-check" style="font-size:28px;color:var(--teal);display:block;margin-bottom:6px"></i>
-          <div style="font-size:14px;font-weight:700;color:var(--teal-d);margin-bottom:3px">재도전 전부 정답! 🎉</div>
-          <div style="font-size:12px;color:var(--gray)">최종 ${S.firstCorrect+correctIds.length}/${getStudyProblems().length}문제 정답!</div>
-        </div>
-        <button class="btn btn-t" onclick="doRetryApprove()"><i class="ti ti-lock-open"></i> ✅ 최종 승인 · 핸드폰 잠금 해제!</button>`
-      : hasWrong ? `
-        <div style="background:var(--red-ll);border-radius:14px;padding:14px;border:0.5px solid var(--red-l)">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <i class="ti ti-alert-circle" style="font-size:22px;color:var(--coral);flex-shrink:0"></i>
-            <div><div style="font-size:13px;font-weight:700;color:var(--coral-d)">아직 오답 ${wrongIds.length}개!</div><div style="font-size:11px;color:var(--gray)">${S.round+1}차 재도전 요청해요</div></div>
-          </div>
-          <button class="btn btn-r" onclick="doRetryReturn()"><i class="ti ti-arrow-back-up"></i> 오답 리턴 · ${S.round+1}차 재도전</button>
-        </div>`
-      : `<p style="text-align:center;font-size:12px;color:var(--gray);padding:10px">재채점 중... (${Object.keys(S.rGraded).length}/${rProblems.length})</p>`}
-    </div>
-  </div>`;
-}
-
-/* ── 승인 완료 화면 ── */
-function screenApproved() {
-  const retryCorrect = S.rIds.filter(id => S.rGraded[id] === true).length;
-  const totalCorrect = S.firstCorrect + (S.rIds.length > 0 ? retryCorrect : 0);
-  const earned = totalCorrect * S.creditPerQ;
-  return `
-  <div class="screen" style="min-height:calc(100vh - 38px);background:var(--teal-ll);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center">
-    <i class="ti ti-confetti" style="font-size:60px;color:var(--teal);animation:popIn .5s ease,floatY 3s .5s ease-in-out infinite;margin-bottom:16px"></i>
-    <div style="font-size:26px;font-weight:900;color:var(--teal-d);margin-bottom:6px">참 잘했어요! <i class="ti ti-star-filled" style="font-size:22px;color:#EF9F27"></i></div>
-    <div style="font-size:13px;color:var(--teal-d);margin-bottom:24px">핸드폰 잠금이 해제됐어요! 🔓</div>
-    <div class="card" style="max-width:290px;padding:18px;margin-bottom:18px;border-color:var(--teal-l)">
-      ${S.rIds.length > 0 ? `
-        <div style="display:flex;justify-content:space-around;margin-bottom:10px">
-          <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--teal)">${S.firstCorrect}개</div><div style="font-size:10px;color:var(--gray)">1차 정답</div></div>
-          <div style="color:var(--gray);font-size:18px;padding-top:6px">+</div>
-          <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--coral)">${retryCorrect}개</div><div style="font-size:10px;color:var(--gray)">재도전 정답</div></div>
-          <div style="color:var(--gray);font-size:18px;padding-top:6px">=</div>
-          <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:var(--teal)">${totalCorrect}개</div><div style="font-size:10px;color:var(--gray)">최종</div></div>
-        </div>
-        <div style="height:0.5px;background:var(--border);margin-bottom:10px"></div>` : ''}
-      <div style="font-size:11px;color:var(--gray);margin-bottom:5px">이번에 적립된 크레딧</div>
-      <div style="font-size:40px;font-weight:900;color:var(--coral)">+${earned.toLocaleString()}원</div>
-      <div style="font-size:11px;color:var(--gray);margin-top:3px">정답 ${totalCorrect}개 × ${S.creditPerQ.toLocaleString()}원</div>
-    </div>
-    ${S.odapNote.filter(n=>!n.solved).length > 0
-      ? `<div class="tag tr" style="margin-bottom:14px"><i class="ti ti-notes"></i> 오답노트 ${S.odapNote.filter(n=>!n.solved).length}개 저장됨</div>` : ''}
-    <button class="btn btn-t" onclick="go('studentHome')" style="max-width:280px"><i class="ti ti-home"></i> 홈으로 가기</button>
-  </div>`;
-}
-
-/* ── 학생 홈 ── */
-function screenStudentHome() {
-  const main = S.rewards[0];
-  const pct = Math.min((S.credits / main.price) * 100, 100);
-  const unsolved = S.odapNote.filter(n => !n.solved);
-  return `
-  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
-    <div class="hdr hdr-coral">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div><div style="font-size:11px;color:var(--gray)">안녕하세요 👋</div><div style="font-size:18px;font-weight:700;color:var(--coral-d)">하은이의 공부방</div></div>
-        <button class="btn btn-g" onclick="go('login')" style="width:auto;padding:8px 12px;font-size:11px">나가기 <i class="ti ti-logout"></i></button>
-      </div>
-    </div>
-    <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div><div style="font-size:11px;color:var(--gray)">현재 크레딧</div><div style="font-size:28px;font-weight:900;color:var(--coral)">${S.credits.toLocaleString()}원</div></div>
-          <i class="ti ti-trophy" style="font-size:32px;color:#EF9F27;animation:floatY 3s ease-in-out infinite"></i>
-        </div>
-        <div style="font-size:11px;color:var(--gray);margin-bottom:5px"><i class="ti ${main.icon}"></i> ${main.name} 달성까지</div>
-        <div class="pt" style="margin-bottom:4px"><div class="pf" style="width:${pct}%;background:var(--coral)"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray)"><span>${pct.toFixed(1)}% 달성!</span><span>${(main.price-S.credits).toLocaleString()}원 남음</span></div>
-      </div>
-      <div>
-        <div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:7px"><i class="ti ti-gift"></i> 보상 목록</div>
-        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">
-          ${S.rewards.map(r => { const p2=Math.min((S.credits/r.price)*100,100); return `
-          <div class="card" style="min-width:110px;flex-shrink:0;text-align:center;padding:12px;border-color:${p2>=100?'var(--teal-l)':'var(--border)'}">
-            <i class="ti ${r.icon}" style="font-size:24px;color:${p2>=100?'var(--teal)':'var(--coral)'}"></i>
-            <div style="font-size:11px;font-weight:500;color:var(--navy);margin:5px 0 2px">${r.name}</div>
-            <div style="font-size:10px;color:var(--coral);font-weight:500">${r.price.toLocaleString()}원</div>
-            ${p2>=100?'<div class="tag tt" style="margin-top:5px;font-size:9px">달성!</div>':''}
-          </div>`;}).join('')}
-        </div>
-      </div>
-      ${unsolved.length > 0 ? `
-      <div class="card" style="border-color:var(--red-l)">
-        <div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:8px">
-          <i class="ti ti-notes" style="color:var(--coral)"></i> 오답노트 <span class="tag tr" style="font-size:10px">${unsolved.length}개 미해결</span>
-        </div>
-        ${unsolved.map(n => `
-        <div style="padding:7px 0;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-          <div><div style="font-size:12px;font-weight:500;color:var(--navy)">${n.unit}</div><div style="font-size:10px;color:var(--gray)">오답: ${n.wrongAns} / 정답: ${n.ans}</div></div>
-          <span class="ub">미해결</span>
-        </div>`).join('')}
-      </div>` : ''}
-      <div class="card">
-        <div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:10px"><i class="ti ti-calendar"></i> 오늘 학습 일정</div>
-        ${S.schedules.map((sch, i) => `
-        <div style="display:flex;justify-content:space-between;align-items:center;${i<S.schedules.length-1?'padding-bottom:10px;margin-bottom:10px;border-bottom:0.5px solid var(--border)':''}">
-          <div><div style="font-size:13px;font-weight:500;color:var(--navy)">${sch.label}</div><div style="font-size:11px;color:var(--gray)">${sch.subj} ${sch.count}문제 · ${sch.days}</div></div>
-          <span class="tag tt" style="font-size:10px">대기중</span>
-        </div>`).join('')}
-      </div>
-      <button class="btn btn-c" onclick="S.qIdx=0;go('motivational')"><i class="ti ti-book"></i> 지금 공부하기!</button>
-    </div>
-  </div>`;
-}
-
-/* ── 관리자 홈 ── */
-function screenAdmin() {
-  const tabs = [
-    {id:'dash',i:'ti-dashboard',l:'현황'},{id:'grade',i:'ti-clipboard-check',l:'채점'},
-    {id:'sch',i:'ti-clock',l:'스케줄'},{id:'reward',i:'ti-gift',l:'보상'},{id:'odap',i:'ti-notes',l:'오답노트'},
-  ];
-  const tabContent = { dash: adminTabDash, grade: adminTabGrade, sch: adminTabSchedule, reward: adminTabReward, odap: adminTabOdap };
-  return `
-  <div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)">
-    <div class="hdr hdr-teal">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div><div style="font-size:11px;color:var(--gray)">관리자 대시보드</div><div style="font-size:18px;font-weight:700;color:var(--teal-d)"><i class="ti ti-settings"></i> 매일-스터디</div></div>
-        <button class="btn btn-g" onclick="go('login')" style="width:auto;padding:8px 12px;font-size:11px">나가기 <i class="ti ti-logout"></i></button>
-      </div>
-    </div>
-    <div class="tab-bar">${tabs.map(t=>`<button onclick="S.aTab='${t.id}';saveState();render()" class="tb${S.aTab===t.id?' act':''}"><i class="ti ${t.i}"></i>${t.l}</button>`).join('')}</div>
-    <div style="flex:1;padding:12px;overflow-y:auto">${(tabContent[S.aTab]||adminTabDash)()}</div>
-  </div>`;
-}
-
-function adminTabDash() {
-  const days = ['월','화','수','목','금','토','일'];
-  const bars = [60,80,40,100,70,30,50];
-  return `
-  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px">
-    ${[{l:'오늘 문제',v:'5문제',i:'ti-pencil',c:'var(--coral)'},{l:'정답률',v:'80%',i:'ti-target',c:'var(--teal)'},{l:'학습시간',v:'24분',i:'ti-clock',c:'var(--amber)'},{l:'누적크레딧',v:S.credits.toLocaleString()+'원',i:'ti-coin',c:'var(--coral-d)'}].map(s=>`
-    <div class="card" style="padding:12px">
-      <i class="ti ${s.i}" style="font-size:20px;color:${s.c};display:block;margin-bottom:6px"></i>
-      <div style="font-size:17px;font-weight:700;color:${s.c}">${s.v}</div>
-      <div style="font-size:10px;color:var(--gray)">${s.l}</div>
-    </div>`).join('')}
+  <i class="ti ti-lock" style="font-size:56px;margin-bottom:16px;color:var(--coral)" aria-hidden="true"></i>
+  <div style="font-size:22px;font-weight:900;margin-bottom:8px">📚 학습 시간이에요!</div>
+  <div id="lock-msg" style="font-size:14px;opacity:.8;margin-bottom:28px;line-height:1.5">문제를 다 풀어야 핸드폰을 쓸 수 있어요</div>
+  <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px">
+    <button onclick="dismissLock()" style="background:var(--coral);color:var(--white);border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;width:100%">지금 공부하기 →</button>
+    <button onclick="unlockWithCode()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);color:var(--white);border-radius:14px;padding:12px;font-size:13px;cursor:pointer;font-family:inherit;width:100%">긴급 해제 코드 입력</button>
   </div>
-  <div class="card">
-    <div style="font-size:12px;font-weight:500;color:var(--navy);margin-bottom:10px"><i class="ti ti-chart-bar"></i> 이번 주 학습 현황</div>
-    <div style="display:flex;gap:4px;align-items:flex-end;height:65px">
-      ${bars.map((h,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-        <div style="width:100%;height:${h}%;background:${i===3?'var(--coral)':'var(--teal-ll)'};border-radius:3px 3px 0 0;border:0.5px solid ${i===3?'var(--coral-d)':'var(--teal-l)'}"></div>
-        <div style="font-size:9px;color:${i===3?'var(--coral)':'var(--gray)'}">${days[i]}</div>
-      </div>`).join('')}
-    </div>
-  </div>`;
+</div>
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()"><div id="modal-box"></div></div>
+<div id="toast"></div>
+<script>
+/* ================================================
+   PART 1: 데이터 상수 & 기본 상태
+   ================================================ */
+const QUOTES=[
+  {text:"천 리 길도 한 걸음부터.",sub:"오늘 이 한 걸음이 미래를 바꿔!",author:"노자",icon:"ti-seedling"},
+  {text:"공부는 절대 배신하지 않아!",sub:"지금 열심히 하는 하은이가 최고야!",author:"격언",icon:"ti-book"},
+  {text:"어제보다 나은 오늘의 하은이!",sub:"조금씩 자라는 게 가장 대단해!",author:"아빠 용국",icon:"ti-heart"},
+  {text:"꿈을 향해 한 발짝씩!",sub:"포기하지 마, 엄마가 응원해!",author:"엄마 은경",icon:"ti-flower"},
+  {text:"틀려도 괜찮아, 다시 하면 돼!",sub:"포기하지 않는 하은이가 멋있어!",author:"격언",icon:"ti-refresh"},
+  {text:"오늘 힘들어야 내일이 편해!",sub:"지금의 노력이 빛나는 미래를 만들어!",author:"격언",icon:"ti-flame"},
+  {text:"공부한 만큼 커지는 꿈!",sub:"오늘도 최선을 다하는 하은이 파이팅!",author:"매일-스터디",icon:"ti-trophy"},
+];
+
+const MATH_UNITS={
+  "중1":["소인수분해","정수와 유리수","문자와 식","일차방정식","좌표와 그래프","정비례와 반비례","기본 도형","작도와 합동","평면도형","입체도형","통계"],
+  "중2":["유리수와 순환소수","단항식의 계산","다항식의 계산","일차부등식","연립일차방정식","일차함수","삼각형의 성질","사각형의 성질","도형의 닮음","피타고라스 정리","확률"],
+  "중3":["제곱근과 실수","다항식의 인수분해","이차방정식","이차함수","삼각비","원의 성질","통계"]
+};
+
+const FALLBACK_MATH={
+  "소인수분해":[{q:"120을 소인수분해 하시오.",ans:"2³×3×5",hints:["2로 나눠보세요","소수로만 나눠야 합니다","2³×3×5"],exp:"120=2×60=2×2×30=2²×30=2³×15=2³×3×5"},{q:"36과 48의 최대공약수를 구하시오.",ans:"12",hints:["소인수분해 하세요","36=2²×3², 48=2⁴×3","공통 부분의 최솟값"],exp:"GCD=2²×3=12"},{q:"12와 18의 최소공배수를 구하시오.",ans:"36",hints:["12=2²×3","18=2×3²","각 인수의 최댓값 곱"],exp:"LCM=2²×3²=36"},{q:"84의 약수의 개수는?",ans:"12",hints:["84=2²×3×7","(2+1)(1+1)(1+1)","3×2×2"],exp:"84=2²×3×7, 약수의 수=12"},{q:"어떤 수의 제곱이 144일 때 그 수의 양의 값은?",ans:"12",hints:["144=12²","소인수분해로 확인","√144"],exp:"144=2⁴×3²=(2²×3)²=12²"}],
+  "정수와 유리수":[{q:"다음을 계산하시오.\n(-3)×4+(-2)÷(-1)=□",ans:"-10",hints:["곱셈/나눗셈 먼저","(-3)×4=-12","(-2)÷(-1)=2"],exp:"-12+2=-10"},{q:"다음을 계산하시오.\n5-(-3)×(-2)=□",ans:"-1",hints:["곱셈 먼저","(-3)×(-2)=6","5-6=-1"],exp:"5-6=-1"},{q:"다음을 계산하시오.\n(-2)³-(-3)²=□",ans:"-17",hints:["(-2)³=(-2)×(-2)×(-2)","(-3)²=9","-8-9=-17"],exp:"-8-9=-17"},{q:"수직선에서 -3과 5의 가운데 점을 구하시오.",ans:"1",hints:["중점=(합)÷2","(-3+5)=2","2÷2=1"],exp:"(-3+5)÷2=1"},{q:"절댓값이 5인 정수를 모두 구하시오.",ans:"5, -5",hints:["절댓값=0에서 거리","양수, 음수 두 경우","5와 -5"],exp:"|-5|=|5|=5"}],
+  "문자와 식":[{q:"x=2, y=-1일 때\n3x²-2y의 값을 구하시오.",ans:"14",hints:["x에 2, y에 -1 대입","3×4=12","-2×(-1)=2"],exp:"3×4-2×(-1)=12+2=14"},{q:"다음을 간단히 하시오.\n3a-2b+4a+5b",ans:"7a+3b",hints:["a끼리 b끼리","3a+4a=7a","-2b+5b=3b"],exp:"7a+3b"},{q:"다음을 전개하시오.\n2x(3x-5)",ans:"6x²-10x",hints:["분배법칙","2x×3x=6x²","2x×(-5)=-10x"],exp:"6x²-10x"},{q:"다항식 6x²y÷(3x)를 계산하시오.",ans:"2xy",hints:["분수 형태로","계수: 6÷3=2","문자: x²÷x=x"],exp:"6x²y÷3x=2xy"},{q:"어떤 수 x에 3을 더한 후 2를 곱하면 16이다.\nx를 구하시오.",ans:"5",hints:["2(x+3)=16","x+3=8","x=5"],exp:"2(x+3)=16 → x=5"}],
+  "일차방정식":[{q:"방정식을 풀어라.\n3(x-2)=2x+1",ans:"7",hints:["좌변 전개: 3x-6","이항: x=7"],exp:"3x-6=2x+1, x=7"},{q:"방정식을 풀어라.\n(x+1)/2=(2x-3)/3",ans:"9",hints:["분모 LCM=6","3(x+1)=2(2x-3)","3x+3=4x-6"],exp:"x=9"},{q:"방정식을 풀어라.\n0.3x+0.4=1.6",ans:"4",hints:["10을 곱해요","3x+4=16","3x=12"],exp:"x=4"},{q:"연속하는 두 홀수의 합이 56일 때\n작은 수를 구하시오.",ans:"27",hints:["두 홀수: n, n+2","n+(n+2)=56","2n+2=56"],exp:"n=27"},{q:"현재 아버지는 딸보다 30살 많고,\n5년 후 아버지 나이가 딸의 3배가 된다.\n현재 딸의 나이는?",ans:"10",hints:["딸=x, 아버지=x+30","5년 후: x+30+5=3(x+5)","x+35=3x+15"],exp:"x=10"}],
+  "좌표와 그래프":[{q:"점 A(-3,2)와 B(5,2) 사이의 거리는?",ans:"8",hints:["y좌표가 같으므로","x 차이","5-(-3)=8"],exp:"|5-(-3)|=8"},{q:"점 P(-2,3)의 x축 대칭점 좌표는?",ans:"(-2, -3)",hints:["x축 대칭: y부호 바꿈","x좌표 그대로","-2, -3"],exp:"(-2,-3)"},{q:"세 점 A(0,0), B(4,0), C(4,3)을\n꼭짓점으로 하는 삼각형의 넓이는?",ans:"6",hints:["밑변=4","높이=3","½×4×3=6"],exp:"6"},{q:"다음 중 제3사분면에 있는 점은?\n(2,-1), (-3,-4), (-1,2)",ans:"(-3,-4)",hints:["제3사분면: x<0, y<0","모두 음수","(-3,-4)"],exp:"x<0, y<0이므로 (-3,-4)"}],
+  "정비례와 반비례":[{q:"y가 x에 정비례하고 x=3일 때 y=12이다.\nx=5일 때 y는?",ans:"20",hints:["y=ax","a=12/3=4","y=4×5"],exp:"y=4x, y=20"},{q:"y가 x에 반비례하고 x=2일 때 y=6이다.\nx=4일 때 y는?",ans:"3",hints:["xy=k","2×6=12","12÷4=3"],exp:"y=12/x, y=3"},{q:"y=-6/x의 그래프가 점 (a, 2)를 지날 때\na를 구하시오.",ans:"-3",hints:["2=-6/a","a=-6/2","-3"],exp:"a=-3"}],
+  "기본 도형":[{q:"맞꼭지각이 (3x-15)°와 (2x+20)°일 때 x는?",ans:"35",hints:["맞꼭지각은 서로 같다","3x-15=2x+20","x=35"],exp:"x=35"},{q:"두 직선이 만날 때 한 각이 70°이면\n이웃한 보각은?",ans:"110°",hints:["보각의 합=180°","180°-70°=110°"],exp:"110°"},{q:"삼각형의 세 내각 중 두 각이\n50°, 70°이면 나머지 한 각은?",ans:"60°",hints:["내각의 합=180°","180°-50°-70°","60°"],exp:"60°"}],
+  "통계":[{q:"자료: 3,7,5,9,1의 평균을 구하시오.",ans:"5",hints:["합÷개수","25÷5","5"],exp:"25÷5=5"},{q:"자료: 2,4,6,8,10의 중앙값은?",ans:"6",hints:["크기순 정렬","가운데 값","3번째"],exp:"6"},{q:"자료: 5,3,5,7,5,9의 최빈값은?",ans:"5",hints:["가장 많이 나온 값","5가 3번","최빈값=5"],exp:"5"}],
+  "유리수와 순환소수":[{q:"0.272727...을 분수로 나타내시오.",ans:"3/11",hints:["x=0.27272..","100x=27.2727..","99x=27"],exp:"99x=27, x=27/99=3/11"},{q:"분수 7/22은 유한소수인가, 무한소수인가?",ans:"무한소수",hints:["분모 소인수분해","22=2×11","2와 5 이외의 소인수 존재"],exp:"22=2×11, 무한소수"},{q:"1.6̄을 분수로 나타내시오.",ans:"5/3",hints:["x=1.666..","10x=16.66..","9x=15"],exp:"9x=15, x=5/3"}],
+  "단항식의 계산":[{q:"다음을 계산하시오.\n(-2a²b)³",ans:"-8a⁶b³",hints:["각 인수에 거듭제곱","(-2)³=-8","a^(2×3)=a⁶"],exp:"-8a⁶b³"},{q:"x³×x²÷x⁴를 계산하시오.",ans:"x",hints:["곱: 지수를 더함","나눔: 지수를 뺌","3+2-4=1"],exp:"x^(3+2-4)=x"},{q:"(3xy²)²÷(9xy)를 계산하시오.",ans:"xy³",hints:["(3xy²)²=9x²y⁴","9x²y⁴÷9xy","x^(2-1), y^(4-1)"],exp:"xy³"}],
+  "다항식의 계산":[{q:"다음을 전개하시오.\n(a+3)(a-5)",ans:"a²-2a-15",hints:["FOIL","a×a=a²","3×(-5)=-15"],exp:"a²-5a+3a-15=a²-2a-15"},{q:"다음을 전개하시오.\n(2x-1)²",ans:"4x²-4x+1",hints:["(a-b)²=a²-2ab+b²","a=2x, b=1","4x²-4x+1"],exp:"4x²-4x+1"},{q:"(x+4)(x-4)를 계산하시오.",ans:"x²-16",hints:["합차공식","(a+b)(a-b)=a²-b²","x²-16"],exp:"x²-16"}],
+  "일차부등식":[{q:"부등식을 풀어라.\n3x-5>x+7",ans:"x>6",hints:["이항","2x>12","x>6"],exp:"2x>12, x>6"},{q:"부등식을 풀어라.\n-2x+3≥7",ans:"x≤-2",hints:["이항","-2x≥4","÷(-2): 부등호 방향 바뀜"],exp:"-2x≥4, x≤-2"},{q:"부등식을 풀어라.\n(x-3)/2<(x+1)/3",ans:"x<11",hints:["분모 LCM=6","3(x-3)<2(x+1)","x<11"],exp:"x<11"}],
+  "연립일차방정식":[{q:"연립방정식을 풀어라.\n2x+y=5\nx-y=1",ans:"x=2, y=1",hints:["두 식을 더하면","3x=6","x=2 대입"],exp:"x=2, y=1"},{q:"연립방정식을 풀어라.\nx+y=7\n2x-y=5",ans:"x=4, y=3",hints:["두 식 더하면","3x=12","x=4 대입"],exp:"x=4, y=3"},{q:"두 수의 합이 20이고 차가 6일 때\n큰 수를 구하시오.",ans:"13",hints:["x+y=20","x-y=6","2x=26"],exp:"x=13"}],
+  "일차함수":[{q:"y=2x-3의 기울기와 y절편을 구하시오.",ans:"기울기:2, y절편:-3",hints:["y=mx+b","m=기울기","b=y절편"],exp:"기울기=2, y절편=-3"},{q:"두 점 (1,2)와 (3,8)을 지나는 직선의 기울기는?",ans:"3",hints:["기울기=(y₂-y₁)/(x₂-x₁)","(8-2)/(3-1)","6/2=3"],exp:"기울기=3"},{q:"y=-3x+6의 x절편을 구하시오.",ans:"2",hints:["x절편: y=0을 대입","0=-3x+6","x=2"],exp:"x=2"}],
+  "삼각형의 성질":[{q:"이등변삼각형에서 꼭짓각이 100°일 때\n두 밑각의 크기는?",ans:"40°",hints:["세 내각의 합=180°","두 밑각은 같다","(180-100)÷2"],exp:"40°"},{q:"삼각형의 외각은 이웃하지 않는 두 내각의\n합과 같다. 두 내각이 40°, 70°이면 외각은?",ans:"110°",hints:["외각=두 내각의 합","40°+70°=110°"],exp:"110°"}],
+  "도형의 닮음":[{q:"닮음비가 2:3인 두 삼각형에서\n작은 삼각형의 넓이가 8이면 큰 삼각형의 넓이는?",ans:"18",hints:["넓이비=닮음비의 제곱","4:9","8×(9/4)=18"],exp:"18"},{q:"닮음비가 3:5인 두 도형에서\n둘레의 비는?",ans:"3:5",hints:["둘레의 비=닮음비","3:5 그대로"],exp:"3:5"}],
+  "피타고라스 정리":[{q:"직각삼각형에서 두 직각 변이 3, 4일 때\n빗변의 길이는?",ans:"5",hints:["a²+b²=c²","9+16=25","√25=5"],exp:"5"},{q:"빗변이 13, 한 직각변이 5인 직각삼각형의\n나머지 변의 길이는?",ans:"12",hints:["5²+b²=13²","b²=169-25=144","b=12"],exp:"12"},{q:"정사각형의 한 변이 4일 때 대각선의 길이는?",ans:"4√2",hints:["대각선을 빗변으로","4²+4²=d²","d=√32=4√2"],exp:"4√2"}],
+  "확률":[{q:"주사위 한 번 던질 때 짝수가 나올 확률은?",ans:"1/2",hints:["짝수: 2,4,6","전체: 6가지","3/6=1/2"],exp:"1/2"},{q:"두 동전을 던질 때 모두 앞면일 확률은?",ans:"1/4",hints:["경우의 수: HH,HT,TH,TT","모두 앞: 1가지","1/4"],exp:"1/4"},{q:"52장 트럼프에서 카드 한 장을 뽑을 때\n하트가 나올 확률은?",ans:"1/4",hints:["하트: 13장","전체: 52장","13/52=1/4"],exp:"1/4"}],
+  "제곱근과 실수":[{q:"√75를 간단히 하시오.",ans:"5√3",hints:["75=25×3","√25=5","5√3"],exp:"√(25×3)=5√3"},{q:"(√3+√2)(√3-√2)를 계산하시오.",ans:"1",hints:["합차공식 이용","a²-b² 형태","3-2=1"],exp:"3-2=1"},{q:"1/√5를 유리화하시오.",ans:"√5/5",hints:["분모에 √5를 곱","√5/√5=1","분모: 5"],exp:"√5/5"},{q:"a=√5+1일 때 a²-2a의 값은?",ans:"4",hints:["a-1=√5","(a-1)²=5","a²-2a+1=5"],exp:"a²-2a=4"}],
+  "다항식의 인수분해":[{q:"인수분해 하시오.\nx²-5x+6",ans:"(x-2)(x-3)",hints:["곱=6, 합=-5","(-2)×(-3)=6","(x-2)(x-3)"],exp:"(x-2)(x-3)"},{q:"인수분해 하시오.\n4x²-9",ans:"(2x+3)(2x-3)",hints:["a²-b² 형태","(2x)²-(3)²","합차공식"],exp:"(2x+3)(2x-3)"},{q:"인수분해 하시오.\nx²+6x+9",ans:"(x+3)²",hints:["완전제곱식","(a+b)²=a²+2ab+b²","a=x, b=3"],exp:"(x+3)²"},{q:"인수분해 하시오.\n2x²+5x+3",ans:"(2x+3)(x+1)",hints:["2×3=6, 합=5","2와 3","2x×x, 2x×1, 3×x, 3×1"],exp:"(2x+3)(x+1)"}],
+  "이차방정식":[{q:"이차방정식을 풀어라.\nx²-3x-10=0",ans:"x=5 또는 x=-2",hints:["인수분해","(x-5)(x+2)=0","x=5, x=-2"],exp:"(x-5)(x+2)=0"},{q:"이차방정식을 풀어라.\n2x²-8=0",ans:"x=±2",hints:["2x²=8","x²=4","x=±2"],exp:"x=±2"},{q:"근의 공식으로 풀어라.\nx²-4x+1=0",ans:"x=2±√3",hints:["a=1,b=-4,c=1","판별식=12","(4±2√3)/2"],exp:"x=2±√3"},{q:"어떤 수와 그 수보다 3 큰 수의 곱이 40이다.\n이 두 수를 구하시오.",ans:"5와 8 (또는 -8과 -5)",hints:["x(x+3)=40","x²+3x-40=0","(x-5)(x+8)=0"],exp:"x=5 또는 x=-8"}],
+  "이차함수":[{q:"y=x²-4x+7의 꼭짓점 좌표를 구하시오.",ans:"(2, 3)",hints:["완전제곱식","y=(x-2)²+3","꼭짓점=(2,3)"],exp:"(2,3)"},{q:"y=2(x-1)²+3의 축의 방정식은?",ans:"x=1",hints:["축: x=h","y=a(x-h)²+k","h=1"],exp:"x=1"},{q:"y=-x²+6x의 최댓값을 구하시오.",ans:"9",hints:["y=-(x-3)²+9","꼭짓점 y좌표","a<0이면 최댓값"],exp:"9"},{q:"y=x²-2x-3의 x절편을 구하시오.",ans:"x=3 또는 x=-1",hints:["y=0 대입","x²-2x-3=0","(x-3)(x+1)=0"],exp:"x=3, x=-1"}],
+  "삼각비":[{q:"직각삼각형에서 빗변=10, 높이=6일 때\nsin값을 구하시오.",ans:"3/5",hints:["sin=대변/빗변","6/10","3/5"],exp:"sin=6/10=3/5"},{q:"cos45°를 구하시오.",ans:"√2/2",hints:["특수각","45-45-90","1:1:√2"],exp:"√2/2"},{q:"sin30°×cos60°를 계산하시오.",ans:"1/4",hints:["sin30°=1/2","cos60°=1/2","1/2×1/2"],exp:"1/4"}],
+  "원의 성질":[{q:"원에서 중심각이 120°일 때 원주각의 크기는?",ans:"60°",hints:["원주각=중심각×½","120÷2=60°"],exp:"60°"},{q:"원에서 지름이 현일 때 원주각의 크기는?",ans:"90°",hints:["지름에 대한 원주각","항상 90°"],exp:"90°"}],
+};
+const FALLBACK_ENG=[{w:"practice",m:"연습하다",p:"프랙티스",ex:"Practice makes perfect.",exK:"연습이 완벽을 만든다."}];
+const REWARDS_DEF=[];
+
+const DEF_STATE={
+  screen:'login',user:null,qIdx:0,
+  mathGrade:'중1',mathUnit:'정수와 유리수',mathDiff:'중',mathCount:5,
+  engGrade:'중1',engTabMode:'card',engIdx:0,
+  engWords:[],engWordsGrade:'',engAiGen:false,
+  answers:{},hl:{},graded:{},
+  rIds:[],rAns:{},rHL:{},rGraded:{},
+  credits:0,adminTab:'dash',dashDetail:null,
+  curP:0,curR:0,round:1,firstCorrect:0,
+  odapNote:[],rewards:[],creditPerQ:500,
+  aiGen:false,problems:[],questionBank:[],
+  emergencyCode:'000000',
+  studyHistory:[],schedules:[],
+  bankUsedIds:{},
+  settings:{apiKey:'',mathModel:'gemini-1.5-flash',engModel:'gemini-1.5-flash',groqApiKey:'',claudeApiKey:''}
+};
+
+let S=Object.assign({},DEF_STATE);
+(function loadState(){
+  try{
+    const d=localStorage.getItem('maeil-study-v3');
+    if(d){
+      const parsed=JSON.parse(d);
+      S=Object.assign({},DEF_STATE,parsed);
+      if(!S.rewards||!S.rewards.length)S.rewards=REWARDS_DEF;
+      if(!S.settings)S.settings=DEF_STATE.settings;
+      if(!S.bankUsedIds)S.bankUsedIds={};
+    }
+  }catch(e){console.warn('상태 로드 실패',e);}
+})();
+function saveState(){try{localStorage.setItem('maeil-study-v3',JSON.stringify(S));}catch(e){console.warn('저장 실패',e);}}
+
+/* ================================================
+   PART 2: 네비게이션 & 공통 모달 시스템
+   ================================================ */
+const NAV_TITLES={login:'홈',motivational:'명언',studyChoice:'공부 선택',mathSetup:'수학 설정',study:'수학 학습',waiting:'채점 대기',adminGrade:'관리자 채점',retry:'재도전',retryWaiting:'재채점 대기',adminRetry:'관리자 재채점',approved:'학습 완료',studentHome:'하은이 홈',admin:'관리자 홈',engStudy:'영어 학습',engSetup:'영어 설정'};
+let NH=['login'],NP=0;
+function go(screenName){NH=NH.slice(0,NP+1);NH.push(screenName);NP=NH.length-1;S.screen=screenName;saveState();render();}
+function navBack(){if(NP>0){NP--;S.screen=NH[NP];render();}}
+function navForward(){if(NP<NH.length-1){NP++;S.screen=NH[NP];render();}}
+function updateNav(){
+  const canB=NP>0,canF=NP<NH.length-1;
+  const bb=document.getElementById('btn-back'),fb=document.getElementById('btn-fwd'),cr=document.getElementById('nav-crumb');
+  if(!bb||!fb||!cr)return;
+  bb.className='nav-btn '+(canB?'nav-on':'nav-off');bb.disabled=!canB;
+  fb.className='nav-btn '+(canF?'nav-on':'nav-off');fb.disabled=!canF;
+  cr.innerHTML=NAV_TITLES[S.screen]||S.screen;
+}
+function openModal(html){document.getElementById('modal-box').innerHTML=html;document.getElementById('modal-overlay').classList.add('open');}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+var _toastTimer=null;
+function toast(msg,ms){ms=ms||2000;var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');if(_toastTimer)clearTimeout(_toastTimer);_toastTimer=setTimeout(function(){el.classList.remove('show');},ms);}
+function confirmModal(msg,onYes){openModal('<div class="modal-title">확인</div><p style="font-size:14px;color:var(--navy);margin-bottom:20px;line-height:1.6">'+msg+'</p><div class="modal-row"><button class="btn btn-g" onclick="closeModal()">취소</button><button class="btn btn-c" id="confirm-yes-btn">확인</button></div>');document.getElementById('confirm-yes-btn').onclick=function(){closeModal();onYes();};}
+
+/* ================================================
+   PART 3: AI 호출 (Google Gemini 연동)
+   ================================================ */
+async function fetchGemini(prompt, modelType) {
+  if(!S.settings || !S.settings.apiKey) {
+    alert("아빠! 관리자 [설정] 탭에서 구글 Gemini API Key를 먼저 등록해주세요!");
+    return null;
+  }
+  const model = (modelType === 'math' ? S.settings.mathModel : S.settings.engModel) || 'gemini-1.5-flash';
+  try {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent?key="+S.settings.apiKey, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7 } })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error.message);
+    if(!data.candidates || !data.candidates[0]) return null;
+    var candidate = data.candidates[0];
+    if(candidate.finishReason && candidate.finishReason !== 'STOP') return null;
+    var rawText = '';
+    if(candidate.content && candidate.content.parts && candidate.content.parts[0]) {
+      rawText = candidate.content.parts[0].text || '';
+    }
+    if(!rawText || rawText.length < 10) return null;
+    rawText = rawText.trim();
+    try {
+      return JSON.parse(rawText.replace(/```json|```/g,'').trim());
+    } catch(e) {
+      var jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      if(jsonMatch) {
+        try { return JSON.parse(jsonMatch[0].replace(/```json|```/g,'').trim()); } catch(e2) {}
+      }
+      return null;
+    }
+  } catch(err) {
+    console.error('Gemini AI 호출 실패:', err); return null;
+  }
 }
 
-function adminTabGrade() {
-  return `
-  <div style="display:flex;flex-direction:column;gap:8px">
-    <div class="card" style="border-color:var(--coral-l);display:flex;justify-content:space-between;align-items:center">
-      <div><div style="font-size:13px;font-weight:500;color:var(--navy)"><i class="ti ti-bell"></i> 채점 대기 중</div><div style="font-size:11px;color:var(--gray)">저녁 7시 · 수학 5문제</div></div>
-      <button class="btn btn-c" onclick="go('adminGrade')" style="width:auto;padding:9px 14px;font-size:12px">채점하기</button>
-    </div>
-    ${S.odapNote.length > 0 ? `
-    <div class="card" style="border-color:var(--red-l)">
-      <div style="font-size:12px;font-weight:500;color:var(--navy);margin-bottom:7px"><i class="ti ti-notes" style="color:var(--coral)"></i> 오답노트 현황</div>
-      ${S.odapNote.map(n=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--border)">
-        <div><div style="font-size:11px;font-weight:500;color:var(--navy)">${n.unit}</div><div style="font-size:10px;color:var(--gray)">오답: ${n.wrongAns} → 정답: ${n.ans}</div></div>
-        <span class="${n.solved?'sb':'ub'}">${n.solved?'해결':'미해결'}</span>
-      </div>`).join('')}
-    </div>` : '<div style="text-align:center;padding:20px;color:var(--gray);font-size:12px"><i class="ti ti-notes" style="font-size:28px;display:block;margin-bottom:6px"></i>채점 기록 없음</div>'}
-  </div>`;
-}
-
-function adminTabSchedule() {
-  return `
-  <div style="display:flex;flex-direction:column;gap:8px">
-    <button class="btn btn-t" onclick="alert('Firebase 연결 후 스케줄 추가 가능!')"><i class="ti ti-plus"></i> 새 스케줄 추가</button>
-    ${S.schedules.map(s=>`
-    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-size:15px;font-weight:700;color:var(--teal)">${s.label}</div>
-        <div style="font-size:11px;color:var(--gray)">${s.subj} ${s.count}문제 · ${s.days} · 난이도 ${s.diff}</div>
-      </div>
-      <button class="btn btn-g" style="width:auto;padding:7px 10px;color:var(--red);border-color:var(--red-l);font-size:11px"><i class="ti ti-trash"></i></button>
-    </div>`).join('')}
-    <div class="card" style="padding:12px">
-      <div style="font-size:12px;font-weight:500;color:var(--navy);margin-bottom:8px"><i class="ti ti-lock"></i> 긴급 해제 코드</div>
-      <div style="display:flex;gap:5px">
-        ${['3','8','1','9','2','4'].map(d=>`<div style="flex:1;background:#F8F8F6;border-radius:6px;padding:8px 0;text-align:center;font-size:18px;font-weight:700;color:var(--navy)">${d}</div>`).join('')}
-      </div>
-      <div style="font-size:10px;color:var(--gray);margin-top:6px;text-align:center">⚠️ 앱 설치 후 반드시 변경하세요!</div>
-    </div>
-  </div>`;
-}
-
-function adminTabReward() {
-  return `
-  <div style="display:flex;flex-direction:column;gap:8px">
-    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
-      <div><div style="font-size:11px;color:var(--gray)">정답 1개당 크레딧</div><div style="font-size:24px;font-weight:700;color:var(--coral)">${S.creditPerQ.toLocaleString()}원</div></div>
-      <button class="btn btn-g" style="width:auto;font-size:11px;padding:8px 12px" onclick="var v=prompt('정답 1개당 크레딧 금액:',S.creditPerQ);if(v&&!isNaN(v)){S.creditPerQ=parseInt(v);saveState();render();}"><i class="ti ti-edit"></i> 변경</button>
-    </div>
-    ${S.rewards.map(r => { const p2=Math.min((S.credits/r.price)*100,100); return `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <i class="ti ${r.icon}" style="font-size:24px;color:var(--coral)"></i>
-          <div><div style="font-size:13px;font-weight:500;color:var(--navy)">${r.name}</div><div style="font-size:11px;color:var(--coral)">${r.price.toLocaleString()}원 (${p2.toFixed(1)}%)</div></div>
-        </div>
-        ${p2>=100 ? `<button class="btn btn-t" style="width:auto;padding:7px 11px;font-size:11px" onclick="if(confirm('${r.name} 보상을 지급 완료 처리할까요?')){S.credits=Math.max(0,S.credits-r.price);saveState();render();}">지급완료</button>` : ''}
-      </div>
-      <div class="pt"><div class="pf" style="width:${p2}%;background:var(--coral)"></div></div>
-    </div>`;}).join('')}
-    <button class="btn btn-c" onclick="var n=prompt('보상 이름:');var p=prompt('금액(원):');if(n&&p&&!isNaN(p)){S.rewards.push({id:Date.now(),name:n,price:parseInt(p),icon:'ti-gift'});saveState();render();}">
-      <i class="ti ti-plus"></i> 새 보상 추가
-    </button>
-    <button class="btn btn-g" style="color:var(--red);border-color:var(--red-l)" onclick="if(confirm('전체 크레딧을 리셋할까요?')){S.credits=0;saveState();render();}">전체 크레딧 리셋</button>
-  </div>`;
-}
-
-function adminTabOdap() {
-  if (!S.odapNote.length) return `
-    <div style="text-align:center;padding:36px 20px;color:var(--gray)">
-      <i class="ti ti-notes" style="font-size:44px;display:block;margin-bottom:10px"></i>
-      <div style="font-size:14px;font-weight:500;color:var(--navy);margin-bottom:4px">오답노트가 비어있어요</div>
-      <div style="font-size:12px">오답 발생 시 자동 저장됩니다</div>
-    </div>`;
-  const unsolved = S.odapNote.filter(n=>!n.solved);
-  const solved = S.odapNote.filter(n=>n.solved);
-  return `
-  <div style="display:flex;flex-direction:column;gap:8px">
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
-      <div class="card" style="text-align:center;padding:12px;border-color:var(--red-l)"><div style="font-size:22px;font-weight:700;color:var(--coral)">${unsolved.length}</div><div style="font-size:10px;color:var(--gray)">미해결</div></div>
-      <div class="card" style="text-align:center;padding:12px;border-color:var(--teal-l)"><div style="font-size:22px;font-weight:700;color:var(--teal)">${solved.length}</div><div style="font-size:10px;color:var(--gray)">해결완료</div></div>
-    </div>
-    ${unsolved.map(n=>`
-    <div class="card" style="border-color:var(--red-l)">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
-        <div style="display:flex;gap:4px;flex-wrap:wrap"><span class="tag tt" style="font-size:10px">${n.unit}</span><span class="tag tr" style="font-size:10px">${n.retries}회 오답</span></div>
-        <span class="ub">미해결</span>
-      </div>
-      <div style="font-size:12px;color:var(--navy);white-space:pre-line;margin-bottom:7px">${n.q}</div>
-      <div style="display:flex;gap:10px;font-size:11px">
-        <div><span style="color:var(--gray)">오답: </span><span style="color:var(--coral);text-decoration:line-through">${n.wrongAns}</span></div>
-        <div><span style="color:var(--gray)">정답: </span><span style="color:var(--teal);font-weight:700">${n.ans}</span></div>
-      </div>
-      <div style="font-size:10px;color:var(--gray);margin-top:5px"><i class="ti ti-calendar"></i> ${n.date}</div>
-    </div>`).join('')}
-    ${solved.map(n=>`
-    <div class="card" style="border-color:var(--teal-l);opacity:.75">
-      <div style="display:flex;justify-content:space-between;align-items:center"><span class="tag tt" style="font-size:10px">${n.unit}</span><span class="sb">해결완료</span></div>
-      <div style="font-size:11px;color:var(--gray);margin-top:5px">정답: ${n.ans}</div>
-    </div>`).join('')}
-  </div>`;
-}
-
-/* ══ 동작 함수들 ══ */
-function loginAs(name, role) {
-  S.user = { name, role };
-  if (role === 'student') { S.qIdx = 0; go('motivational'); }
-  else go('admin');
-}
-
-function useHint(id) { S.hintLevel[id] = Math.min((S.hintLevel[id]||0)+1, 3); saveState(); render(); }
-function useRHint(id) { S.rHints[id] = Math.min((S.rHints[id]||0)+1, 3); saveState(); render(); }
-
-function doApprove() {
-  S.firstCorrect = getStudyProblems().filter(p => S.graded[p.id] === true).length;
-  S.credits += S.firstCorrect * S.creditPerQ;
+/* ── 문제은행 순환 출제 (AI 장애 시 1순위 대체) ── */
+function getFallbackFromBank(unit, count) {
+  var bank = (S.questionBank||[]).filter(function(q){ return q.unit === unit; });
+  if(bank.length === 0) return null;
+  if(!S.bankUsedIds) S.bankUsedIds = {};
+  if(!S.bankUsedIds[unit]) S.bankUsedIds[unit] = [];
+  var unused = bank.filter(function(q){ return S.bankUsedIds[unit].indexOf(q.id) === -1; });
+  if(unused.length === 0) {
+    S.bankUsedIds[unit] = [];
+    unused = bank.slice();
+    toast('💫 문제은행 1순환 완료! 처음부터 다시 출제합니다.', 2500);
+  }
+  unused = unused.slice().sort(function(){ return 0.5 - Math.random(); });
+  var selected = unused.slice(0, Math.min(count, unused.length));
+  selected.forEach(function(q){ if(S.bankUsedIds[unit].indexOf(q.id)===-1) S.bankUsedIds[unit].push(q.id); });
   saveState();
-  go('approved');
+  return selected.map(function(p, i){ return Object.assign({}, p, {id: i+1}); });
 }
 
-function doReturn() {
-  const wrongIds = getStudyProblems().filter(p => S.graded[p.id] === false).map(p=>p.id);
-  S.firstCorrect = getStudyProblems().filter(p => S.graded[p.id] === true).length;
-  wrongIds.forEach(id => {
-    const p = getStudyProblems().find(pr=>pr.id===id);
-    const ex = S.odapNote.find(n=>n.id===id);
-    if (ex) { ex.retries++; ex.wrongAns = S.answers[id]||'?'; }
-    else S.odapNote.push({ id, q:p.q, unit:p.unit, wrongAns:S.answers[id]||'?', ans:p.ans, date:new Date().toLocaleDateString('ko-KR'), retries:1, solved:false });
-  });
-  S.rIds = wrongIds; S.rAnswers = {}; S.rHints = {}; S.rGraded = {}; S.curR = 0; S.round++;
-  saveState(); go('retry');
+async function genProblems(grade,unit,diff,count){
+  if(!S.settings || !S.settings.apiKey) { alert("관리자 [설정] 탭에서 API Key를 먼저 등록해주세요!"); return; }
+  S.aiGen=true; render();
+  const unitGuide={"소인수분해":"소인수분해·최대공약수·최소공배수·약수의 개수","정수와 유리수":"음수 사칙연산·절댓값·수직선·복합 계산식","문자와 식":"대입·동류항 정리·분배법칙·다항식 계산","일차방정식":"이항·분수/소수방정식·연속수·나이 등 활용","좌표와 그래프":"좌표평면·사분면·대칭점·도형의 넓이","정비례와 반비례":"비례상수·xy=k·그래프 해석·활용","기본 도형":"맞꼭지각·보각·여각·평행선과 각","작도와 합동":"삼각형 합동 조건(SSS/SAS/ASA)·작도","평면도형":"다각형 내각 합·원의 둘레/넓이","입체도형":"겉넓이·부피·전개도","통계":"평균·중앙값·최빈값·도수분포표·히스토그램","유리수와 순환소수":"순환소수를 분수로·유한/무한 판별","단항식의 계산":"지수법칙·단항식 곱/나눗셈","다항식의 계산":"곱셈공식·(a+b)²·(a+b)(a-b)·전개","일차부등식":"부등식 성질·음수 곱할 때 방향·연립부등식","연립일차방정식":"가감법·대입법·연립방정식 활용","일차함수":"기울기·절편·직선의 방정식·두 직선 교점","삼각형의 성질":"이등변삼각형·외각·내각의 이등분선","사각형의 성질":"평행사변형·직사각형·마름모 성질","도형의 닮음":"닮음비·넓이비·부피비·삼각형 닮음 조건","피타고라스 정리":"a²+b²=c²·실생활 활용·대각선 길이","확률":"경우의 수·확률 공식·여사건·독립사건","제곱근과 실수":"제곱근 계산·유리화·실수 대소 비교","다항식의 인수분해":"공통인수·완전제곱·합차·복잡한 인수분해","이차방정식":"인수분해·완전제곱·근의 공식·활용문제","이차함수":"꼭짓점·축·최대최소·이차함수 그래프","삼각비":"sin·cos·tan 정의·특수각(30°,45°,60°)·활용","원의 성질":"원주각·중심각·접선의 성질·할선"};
+  const guide = unitGuide[unit] || unit;
+  const diffDesc = diff==='하'?'기초 개념 확인 수준':diff==='중'?'교과서 기본 문제 수준':'교과서 심화·응용 수준';
+  const prompt=`당신은 대한민국 최고의 중학교 수학 교사입니다.\n\n[출제 조건]\n- 대상 학년: 한국 ${grade} 학생\n- 단원: "${unit}" (핵심 개념: ${guide})\n- 난이도: ${diff} (${diffDesc})\n- 문제 수: ${count}개 (각 문제는 서로 다른 유형이어야 함)\n- 주의: 이 단원의 핵심 개념만 사용하세요. 다른 단원 개념 사용 금지.\n\n[형식 규칙]\n- 수식에는 □, ² ³ 등의 기호 사용\n- 풀이 과정은 단계별로 간결하게\n- hints는 학생이 스스로 풀 수 있도록 유도하는 힌트 3개\n\n반드시 JSON 배열만 응답 (다른 텍스트 없음):\n[{"q":"문제내용(줄바꿈:\\n)","ans":"정답","hints":["힌트1","힌트2","힌트3"],"exp":"풀이과정","unit":"${unit}","diff":"${diff}"}]`;
+  const arr = await fetchGemini(prompt, 'math');
+  if(arr && Array.isArray(arr) && arr.length > 0) {
+    S.problems = arr.map((p,i)=>({...p,id:i+1, unit:unit, diff:diff}));
+  } else {
+    var bankProblems = getFallbackFromBank(unit, count);
+    if(bankProblems) {
+      S.problems = bankProblems;
+      toast('💡 AI 지연: 문제은행에서 출제했습니다.');
+    } else {
+      S.problems = Array.from({length:count}, function(_,i){
+        var a=Math.floor(Math.random()*12)+2, b=Math.floor(Math.random()*9)+2, c=Math.floor(Math.random()*5)+1;
+        var q,ans,exp;
+        if(unit==='일차방정식'){q='방정식을 풀어라.\n'+(c+1)+'x + '+a+' = '+((c+1)*b+a); ans=String(b); exp=(c+1)+'x = '+(c+1)*b+', x = '+b;}
+        else if(unit==='다항식의 인수분해'){q='인수분해 하시오.\nx²+'+(a+b)+'x+'+a*b; ans='(x+'+a+')(x+'+b+')'; exp='두 수의 합='+(a+b)+', 곱='+a*b;}
+        else if(unit==='이차방정식'){q='이차방정식을 풀어라.\nx² - '+(a+b)+'x + '+a*b+' = 0'; ans='x='+a+' 또는 x='+b; exp='(x-'+a+')(x-'+b+')=0';}
+        else if(unit==='제곱근과 실수'){var ns=[4,9,16,25,36,49],ss=[2,3,4,5,6,7],ni=i%6; q='다음을 계산하시오.\n√'+ns[ni]; ans=String(ss[ni]); exp='√'+ns[ni]+'='+ss[ni];}
+        else if(unit==='연립일차방정식'){q='연립방정식을 풀어라.\nx + y = '+(a+b)+'\nx - y = '+(a-b); ans='x='+a+', y='+b; exp='두 식 더하면 2x='+(2*a)+', x='+a;}
+        else if(unit==='일차함수'){q='y = '+c+'x + '+a+'의 기울기와 y절편을 구하시오.'; ans='기울기: '+c+', y절편: '+a; exp='y=mx+b에서 m='+c+', b='+a;}
+        else if(unit==='이차함수'){q='y = (x - '+a+')² + '+b+'의 꼭짓점 좌표는?'; ans='('+a+', '+b+')'; exp='꼭짓점: ('+a+', '+b+')';}
+        else if(unit==='확률'){q='주사위 한 번 던질 때 '+a+' 이하가 나올 확률은?'; ans=a+'/6'; exp=a+'가지 / 전체 6가지 = '+a+'/6';}
+        else if(unit==='정수와 유리수'){q='다음을 계산하시오.\n(-'+a+') × '+b+' + '+c+' = □'; ans=String(-a*b+c); exp='(-'+a+')×'+b+'='+(-a*b)+', '+(-a*b)+'+'+c+'='+(c-a*b);}
+        else if(unit==='문자와 식'){q='간단히 하시오.\n'+c+'a + '+a+'b - '+b+'a + '+c+'b'; ans=(c-b)+'a + '+(a+c)+'b'; exp='a끼리: '+(c)+'-'+b+'='+(c-b)+', b끼리: '+a+'+'+c+'='+(a+c);}
+        else {q='다음을 계산하시오.\n(-'+a+') × (-'+b+') - '+c+' = □'; ans=String(a*b-c); exp='(-'+a+')×(-'+b+')='+a*b+', '+a*b+'-'+c+'='+(a*b-c);}
+        return {id:i+1, q:q, ans:ans, hints:["개념을 다시 확인해보세요","식을 먼저 세워요","단계별로 차근차근"], exp:exp, unit:unit, diff:diff};
+      });
+      toast('⚠️ AI 지연: 단원별 자동 문제로 대체합니다.');
+    }
+  }
+  S.answers={}; S.hl={}; S.graded={}; S.curP=0; S.round=1; S.firstCorrect=0;
+  S.aiGen=false; saveState(); go('study');
 }
 
-function doRetryApprove() {
-  const rProblems = getStudyProblems().filter(p=>S.rIds.includes(p.id));
-  const retryCorrect = rProblems.filter(p=>S.rGraded[p.id]===true).length;
-  rProblems.forEach(p => { const n=S.odapNote.find(n=>n.id===p.id); if(n&&S.rGraded[p.id])n.solved=true; });
-  S.credits += (S.firstCorrect + retryCorrect) * S.creditPerQ;
+async function genReviewProblems(){
+  const unsovled = S.odapNote.filter(function(n){return !n.solved;});
+  if(unsovled.length === 0) { toast('복습할 오답이 없어요! 최고!'); return; }
+  S.aiGen = true; render();
+  const count = Math.min(unsovled.length, 5);
+  const sample = unsovled.slice(0, count);
+  const sampleText = JSON.stringify(sample.map(function(n){return {q:n.q, ans:n.ans};}));
+  const prompt = `다음은 학생이 틀린 수학 오답입니다.\n${sampleText}\n풀이 원리는 유지하고 숫자만 바꿔서 ${sample.length}개를 JSON 배열로 응답:\n[{"q":"문제","ans":"정답","hints":["힌트"],"exp":"설명","unit":"오답복습","diff":"맞춤"}]`;
+  const arr = await fetchGemini(prompt, 'math');
+  if(arr && Array.isArray(arr) && arr.length >= count * 0.5) {
+    S.problems = arr.slice(0, count).map((p,i)=>({...p,id:i+1, unit:'오답복습', diff:'맞춤'}));
+    toast('✨ AI가 하은이를 위해 문제를 만들었어요!');
+  } else {
+    var bankProblems = getFallbackFromBank('오답복습', count);
+    if(bankProblems && bankProblems.length > 0) {
+      S.problems = bankProblems;
+      toast('💡 AI 통신 지연: 문제은행에 저축된 비상 문제를 가져왔어요.');
+    } else {
+      S.problems = sample.map((n,i)=>({id:i+1, q:n.q, ans:n.ans, hints:["다시 생각해보자!"], exp:"부모님과 다시 풀어봐요", unit:n.unit, diff:"복습"}));
+      toast('⚠️ AI 지연: 틀린 문제를 그대로 다시 풉니다.');
+    }
+  }
+  S.answers={}; S.hl={}; S.graded={}; S.curP=0; S.round=1; S.firstCorrect=0;
+  S.aiGen=false; saveState(); go('study');
+}
+
+async function genEngWords(grade, count){
+  count = count || S.engCount || 10;
+  if(!S.settings || !S.settings.apiKey) { alert("관리자 [설정] 탭에서 API Key를 등록해주세요!"); return; }
+  S.engAiGen=true; render();
+  const prompt = `한국 중학교 ${grade} 필수 영단어 ${count}개 무작위 추출. JSON 배열만 응답:\n[{"w":"단어","m":"뜻","p":"발음","ex":"예문","exK":"해석"}]`;
+  const arr = await fetchGemini(prompt, 'eng');
+  if(arr && Array.isArray(arr) && arr.length > 0) {
+    S.engWords = arr; S.engWordsGrade = grade;
+  } else {
+    const bank = FALLBACK_ENG;
+    S.engWords = Array.from({length:count}, (_,i) => {
+      var b = bank[i%bank.length]; return {w: b.w+(i>0?i:''), m: b.m, p: b.p, ex: b.ex, exK: b.exK};
+    });
+    S.engWordsGrade = grade;
+    toast('⚠️ AI 지연: 내장 단어장으로 대체합니다.');
+  }
+  S.engAiGen=false; S.engIdx=0; saveState(); go('engStudy');
+}
+
+async function genGrammarProblems(grade, count) {
+  count = count || S.engCount || 10;
+  if(!S.settings || !S.settings.apiKey) { alert("관리자 [설정] 탭에서 API Key를 등록해주세요!"); return; }
+  S.aiGen=true; render();
+  const prompt = `중학교 ${grade} 영어 문법 전용 객관식/단답형 ${count}개. 수학 내용 절대 금지. JSON 배열만 응답:\n[{"q":"문제","ans":"정답","hints":["힌트"],"exp":"설명","unit":"영어문법","diff":"중"}]`;
+  const arr = await fetchGemini(prompt, 'eng');
+  if(arr && Array.isArray(arr) && arr.length > 0) {
+    S.problems = arr.map((p,i)=>({...p,id:i+1, unit:'영어문법', diff:'중'}));
+  } else {
+    var bankProblems = getFallbackFromBank('영어문법', count);
+    if(bankProblems) {
+      S.problems = bankProblems;
+      toast('💡 AI 지연: 문제은행에서 출제했습니다.');
+    } else {
+      S.problems = Array.from({length:count},(_,i)=>({id:i+1, q:`She __ a student. (Q${i+1})`, ans:"is", hints:["be동사"], exp:"3인칭 단수", unit:"영어문법", diff:"중"}));
+      toast('⚠️ AI 지연: 자체 알고리즘 문제로 출제합니다.');
+    }
+  }
+  S.answers={}; S.hl={}; S.graded={}; S.curP=0; S.round=1; S.firstCorrect=0;
+  S.aiGen=false; saveState(); go('study');
+}
+
+function speak(text,lang,pitch){
+  lang=lang||'en-US';
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=lang; u.rate=0.85; u.pitch=pitch||1;
+  window.speechSynthesis.speak(u);
+}
+
+let mediaRecorder; let audioChunks = [];
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.start(); audioChunks = [];
+    mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
+    mediaRecorder.addEventListener("stop", () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = function() { S.cheerAudio = reader.result; saveState(); render(); toast('🎙️ 부모님 목소리가 성공적으로 저장되었습니다!'); }
+    });
+    document.getElementById('btn-rec-start').disabled = true;
+    document.getElementById('btn-rec-start').textContent = '녹음 중... (최대 10초)';
+    document.getElementById('btn-rec-stop').disabled = false;
+    document.getElementById('btn-rec-stop').className = 'btn btn-c';
+    setTimeout(() => { if(mediaRecorder && mediaRecorder.state === 'recording') stopRecording(); }, 10000);
+  } catch (err) { alert("마이크 권한을 허용해주세요!"); }
+}
+function stopRecording() {
+  if(mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop(); mediaRecorder.stream.getTracks().forEach(track => track.stop());
+  }
+}
+function playCheerAudio() {
+  if(S.cheerAudio) { const audio = new Audio(S.cheerAudio); audio.play(); } else { toast('저장된 음성이 없습니다.'); }
+}
+function deleteCheerAudio() { S.cheerAudio = null; saveState(); render(); toast('🗑️ 녹음된 음성이 삭제되었습니다.'); }
+function cheerUp(){
+  setTimeout(function(){
+    if(S.cheerAudio) { const audio = new Audio(S.cheerAudio); audio.play(); }
+    else { speak("우리 딸 하은이! 오늘도 다 맞았네? 아빠 엄마가 정말 자랑스러워. 사랑해!", 'ko-KR', 1.2); }
+  }, 500);
+}
+window.startRecording=startRecording; window.stopRecording=stopRecording;
+window.playCheerAudio=playCheerAudio; window.deleteCheerAudio=deleteCheerAudio;
+
+function startSpeechRecognition(targetWord) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition) { toast('이 브라우저는 음성 인식을 지원하지 않아요 ㅠㅠ'); return; }
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'en-US'; recognition.interimResults = false; recognition.maxAlternatives = 1;
+  toast('마이크에 대고 영어로 말해주세요! 🎙️', 3000);
+  recognition.onresult = function(event) {
+    const speechResult = event.results[0][0].transcript.toLowerCase().replace(/[^a-z]/g, '');
+    const target = targetWord.toLowerCase().replace(/[^a-z]/g, '');
+    if(speechResult === target) { toast('정확해요! 발음이 너무 좋아요! 🥳 +100원', 3000); S.credits = (S.credits || 0) + 100; S.wordSpoken = true; saveState(); render(); }
+    else { toast('인식된 단어: ' + event.results[0][0].transcript + '\n다시 시도해볼까요?', 3000); }
+  };
+  recognition.onerror = function(event) { toast('음성 인식 오류: ' + event.error); };
+  recognition.start();
+}
+
+let _cassPlaying=false, _cassIdx=0, _cassTimer=null;
+function startCassette(){ _cassPlaying=true; _cassIdx=S.engIdx||0; playNextWord(); }
+function playNextWord(){
+  if(!_cassPlaying) return;
+  const ws=S.engWords||[]; if(!ws.length) return;
+  const w=ws[_cassIdx%ws.length]; speak(w.w);
+  const elW=document.getElementById('cass-word'), elM=document.getElementById('cass-mean'), elP=document.getElementById('cass-pron'), elI=document.getElementById('cass-idx');
+  if(elW)elW.textContent=w.w; if(elM)elM.textContent=w.m; if(elP)elP.textContent='['+w.p+']'; if(elI)elI.textContent=(_cassIdx%ws.length+1)+'/'+ws.length;
+  _cassTimer=setTimeout(function(){
+    if(!_cassPlaying) return; _cassIdx++; playNextWord();
+    const c=document.getElementById('cass-word');
+    if(c){c.style.animation='none';void c.offsetWidth;c.style.animation='fadeUp .3s ease';}
+  },3200);
+}
+function stopCassette(){ _cassPlaying=false; if(_cassTimer) clearTimeout(_cassTimer); if(window.speechSynthesis) window.speechSynthesis.cancel(); }
+
+let _qTimer=null;
+function startQuoteTimer(){ if(_qTimer) clearInterval(_qTimer); _qTimer=setInterval(function(){ S.qIdx=(S.qIdx+1)%QUOTES.length; refreshQuoteCard(); },6000); }
+function refreshQuoteCard(){
+  const el=document.getElementById('qi'); if(!el) return;
+  const q=QUOTES[S.qIdx];
+  const dots=QUOTES.map(function(_,i){return '<span style="display:inline-block;width:'+(i===S.qIdx?'16px':'5px')+';height:5px;border-radius:3px;background:'+(i===S.qIdx?'var(--coral)':'var(--coral-l)')+';margin:0 2px;transition:all .3s"></span>'}).join('');
+  el.innerHTML='<i class="ti '+q.icon+'" style="font-size:48px;color:var(--coral);display:block;text-align:center;margin-bottom:12px;animation:floatY 2.5s ease-in-out infinite"></i>'
+    +'<div class="tag tc" style="display:block;text-align:center;margin-bottom:12px"><i class="ti ti-lock"></i> 오늘 학습 알림</div>'
+    +'<blockquote style="font-size:21px;font-weight:900;color:var(--navy);line-height:1.45;text-align:center;margin-bottom:8px;word-break:keep-all">"'+q.text+'"</blockquote>'
+    +'<p style="font-size:13px;color:var(--coral);font-weight:500;text-align:center;margin-bottom:4px">'+q.sub+'</p>'
+    +'<p style="font-size:11px;color:var(--gray);text-align:center;margin-bottom:20px">— '+q.author+'</p>'
+    +'<div style="text-align:center;margin-bottom:20px">'+dots+'</div>'
+    +'<button class="btn btn-c" onclick="goStudyChoice()"><i class="ti ti-bolt"></i> 공부 시작하기!</button>'
+    +'<button class="btn btn-g" onclick="go(&apos;studentHome&apos;)" style="margin-top:8px">홈으로 가기</button>';
+}
+
+function dismissLock(){
+  document.getElementById('lock-overlay').classList.remove('active');
+  if(S.activeLockSch) {
+    var sch = S.activeLockSch;
+    if(sch.subj === '영어') { S.engGrade = sch.grade; genEngWords(sch.grade, sch.count); go('engStudy'); }
+    else if(sch.subj === '영어문법') { S.mathGrade = sch.grade; S.mathDiff = '중'; S.mathCount = sch.count; S.mathUnit = '영어 문법 종합'; genGrammarProblems(sch.grade, sch.count); }
+    else { S.mathGrade = sch.grade; S.mathUnit = MATH_UNITS[sch.grade] ? MATH_UNITS[sch.grade][0] : '정수와 유리수'; S.mathDiff = '중'; S.mathCount = sch.count; genProblems(S.mathGrade, S.mathUnit, S.mathDiff, S.mathCount); }
+    S.activeLockSch = null;
+  } else { go('motivational'); }
+}
+function unlockWithCode() {
+  var code = prompt('긴급 해제 코드를 입력하세요 (숫자 4~8자리):');
+  if (code === (S.emergencyCode || '000000')) { document.getElementById('lock-overlay').classList.remove('active'); S.activeLockSch = null; toast('✅ 긴급 잠금 해제되었습니다.'); }
+  else if(code !== null) { alert('❌ 코드가 일치하지 않습니다.'); }
+}
+
+setInterval(function() {
+  if (S.user && S.user.role === 'student' && S.schedules && S.schedules.length > 0) {
+    var now = new Date();
+    var curTimeStr = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
+    var todayStr = now.toLocaleDateString('ko-KR');
+    var sch = S.schedules.find(function(s) { return s.time === curTimeStr && s.active; });
+    if (sch && sch.lastDate !== todayStr) {
+      sch.lastDate = todayStr; saveState(); S.activeLockSch = sch;
+      var elMsg = document.getElementById('lock-msg');
+      if(elMsg) elMsg.innerHTML = sch.subj + ' ' + sch.count + (sch.subj==='영어'?'단어':'문제') + ' (' + (sch.grade||'중1') + ')<br>다 풀어야 핸드폰을 쓸 수 있어요!';
+      document.getElementById('lock-overlay').classList.add('active');
+    }
+  }
+}, 10000);
+
+window.unlockWithCode = unlockWithCode;
+window.genGrammarProblems = genGrammarProblems;
+
+/* ================================================
+   PART 4: 렌더링 - 로그인 & 학생 화면
+   ================================================ */
+function screenLogin(){
+  var ms=[
+    {n:'용국',r:'admin',sub:'아빠·관리자',i:'ti-user-circle',c:'var(--mint)',bg:'var(--mint-ll)'},
+    {n:'은경',r:'admin',sub:'엄마·관리자',i:'ti-user-heart',c:'var(--coral)',bg:'var(--coral-ll)'},
+    {n:'하은',r:'student',sub:'딸·학생',i:'ti-star',c:'var(--amber-d)',bg:'var(--amber-ll)'},
+  ];
+  return '<div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;background:#FAFAF8">'
+    +'<div style="text-align:center;margin-bottom:28px"><i class="ti ti-book-2" style="font-size:52px;color:var(--coral);display:block;margin-bottom:8px;animation:floatY 3s ease-in-out infinite"></i>'
+    +'<div style="font-size:26px;font-weight:900;color:var(--navy)">매일<span style="color:var(--mint)">-</span>스터디</div>'
+    +'<div style="font-size:11px;color:var(--gray);margin-top:4px">v3.0 · 하은이 AI 맞춤 학습</div></div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px">'
+    +ms.map(function(m,i){return '<button onclick="loginAs(&apos;'+m.n+'&apos;,&apos;'+m.r+'&apos;)" style="background:'+m.bg+';border:.5px solid '+m.c+'60;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;width:100%;font-family:inherit;animation:fadeUp .4s ease '+(i*.08)+'s both"><i class="ti '+m.i+'" style="font-size:26px;color:'+m.c+';flex-shrink:0"></i><div style="text-align:left;flex:1"><div style="font-size:17px;font-weight:700;color:'+m.c+'">'+m.n+'</div><div style="font-size:11px;color:var(--gray)">'+m.sub+'</div></div><i class="ti ti-chevron-right" style="color:'+m.c+';font-size:15px"></i></button>'}).join('')
+    +'</div></div>';
+}
+function loginAs(name,role){ S.user={name:name,role:role}; if(role==='student'){S.qIdx=0;go('motivational');startQuoteTimer();}else go('admin'); }
+
+function screenMotivational(){
+  var q=QUOTES[S.qIdx];
+  var stars=[0,1,2,3,4].map(function(i){return '<span style="position:absolute;left:'+(8+i*18)+'%;bottom:-8px;font-size:'+(11+i%3*4)+'px;animation:starRise '+(2+i*.5)+'s '+(i*.3)+'s ease-in infinite;opacity:.4">'+['✦','✧','❋','✿','★'][i]+'</span>'}).join('');
+  setTimeout(function(){startQuoteTimer();refreshQuoteCard();},80);
+  return '<div class="screen" style="background:var(--coral-ll);min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 18px;position:relative;overflow:hidden">'
+    +stars+'<div class="card" style="width:100%;max-width:360px;padding:24px 20px;position:relative;z-index:2;border-color:var(--coral-l)"><div id="qi"></div></div></div>';
+}
+function goStudyChoice(){ if(_qTimer) clearInterval(_qTimer); go('studyChoice'); }
+
+function startMathFromSetup() { genProblems(S.mathGrade||'중1', S.mathUnit||'정수와 유리수', S.mathDiff||'중', S.mathCount||5); }
+function startEngFromSetup() {
+  if(S.engType === 'grammar') genGrammarProblems(S.engGrade||'중1', S.engCount||10);
+  else genEngWords(S.engGrade||'중1', S.engCount||10);
+}
+function screenStudyChoice(){
+  return '<div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:16px;background:#FAFAF8">'
+    +'<div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;text-align:center">오늘 무엇을 공부할까요? 📚</div>'
+    +'<button class="btn btn-c" onclick="startMathFromSetup()" style="max-width:280px;font-size:16px;padding:16px"><i class="ti ti-math"></i> AI 수학 공부하기</button>'
+    +'<button class="btn btn-m" onclick="startEngFromSetup()" style="max-width:280px;font-size:16px;padding:16px"><i class="ti ti-language"></i> AI 영어 공부하기</button>'
+    +'<button class="btn btn-g" onclick="go(&apos;studentHome&apos;)" style="max-width:280px">홈으로 가기</button>'
+    +'<p style="font-size:11px;color:var(--gray);margin-top:10px">※ 부모님이 설정해둔 범위로 자동 시작됩니다.</p>'
+    +'</div>';
+}
+
+function screenStudentHome(){
+  var mStr = "genProblems('"+(S.mathGrade||'중1')+"','"+(S.mathUnit||'정수와 유리수')+"','"+(S.mathDiff||'중')+"',"+(S.mathCount||5)+")";
+  var eStr = (S.engType==='grammar') ? "genGrammarProblems('"+(S.engGrade||'중1')+"',"+(S.engCount||10)+")" : "genEngWords('"+(S.engGrade||'중1')+"',"+(S.engCount||10)+")";
+  var main=S.rewards[0] || {name:'보상 준비중',price:999999,icon:'🎁'};
+  var pct=Math.min((S.credits||0)/main.price*100,100);
+  var un=S.odapNote.filter(function(n){return !n.solved;});
+  var rewardCards='';
+  if(S.rewards && S.rewards.length>0){
+    rewardCards = S.rewards.map(function(r){
+      var p2=Math.min((S.credits||0)/r.price*100,100);
+      return '<div class="card" style="min-width:110px;flex-shrink:0;text-align:center;padding:12px;border-color:'+(p2>=100?'var(--mint-l)':'var(--border)')+'"><i class="ti '+r.icon+'" style="font-size:24px;color:'+(p2>=100?'var(--mint)':'var(--coral)')+'"></i><div style="font-size:11px;font-weight:500;color:var(--navy);margin:5px 0 2px">'+r.name+'</div><div style="font-size:10px;color:var(--coral)">'+r.price.toLocaleString()+'원</div>'+(p2>=100?'<div class="tag tm" style="margin-top:5px;font-size:9px">달성!</div>':'')+'</div>';
+    }).join('');
+  }
+  var schRows = '';
+  if(S.schedules && S.schedules.length > 0) {
+    schRows = S.schedules.map(function(sch, i){
+      var isLast = (i === S.schedules.length - 1);
+      var stClass = sch.subj==='영어'?'tm':(sch.subj==='영어문법'?'ta':'tc');
+      var borderCss = isLast ? '' : 'padding-bottom:10px;margin-bottom:10px;border-bottom:.5px solid var(--border);';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;' + borderCss + '"><div><div style="font-size:13px;font-weight:500;color:var(--navy)">'+sch.label+'</div><div style="font-size:11px;color:var(--gray)">'+sch.subj+' '+sch.count+(sch.subj==='수학'?'문제':'단어')+' · '+(sch.grade||'중1')+'</div></div><span class="tag '+stClass+'" style="font-size:10px">'+sch.subj+'</span></div>';
+    }).join('');
+  }
+  var aiReviewBtn = un.length > 0 ? '<button class="btn btn-r" onclick="genReviewProblems()" style="margin-top:10px;font-size:12px"><i class="ti ti-flame"></i> AI 오답 스마트 복습 ('+un.length+'개)</button>' : '';
+  return '<div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)"><div class="hdr hdr-coral"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--gray)">안녕하세요 👋</div><div style="font-size:20px;font-weight:700;color:#C0392B">하은이의 공부방</div></div><button class="btn btn-g" onclick="go(&apos;login&apos;)" style="width:auto;padding:8px 12px;font-size:11px">나가기 <i class="ti ti-logout"></i></button></div></div><div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div><div style="font-size:11px;color:var(--gray)">현재 크레딧</div><div style="font-size:30px;font-weight:900;color:var(--coral)">'+(S.credits||0).toLocaleString()+'원</div></div><i class="ti ti-trophy" style="font-size:36px;color:var(--amber);animation:floatY 3s ease-in-out infinite"></i></div><div class="pt" style="margin-bottom:4px"><div class="pf" style="width:'+pct+'%;background:var(--coral)"></div></div></div><div><div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:7px"><i class="ti ti-gift"></i> 목표 보상</div><div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">'+rewardCards+'</div></div>'
+    +(schRows?'<div class="card"><div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:10px"><i class="ti ti-calendar"></i> 학습 일정</div>'+schRows+'</div>':'')
+    +'<div class="card" style="background:#F0FBF9; border-color:var(--mint-l)"><div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:10px"><i class="ti ti-sparkles"></i> AI 맞춤 학습 이어서 하기</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn btn-c" onclick="'+mStr+'" style="font-size:12px"><i class="ti ti-math"></i> 새 수학 문제</button><button class="btn btn-m" onclick="'+eStr+'" style="font-size:12px"><i class="ti ti-language"></i> 새 영어 학습</button></div>'+aiReviewBtn+'</div></div></div>';
+}
+window.startMathFromSetup=startMathFromSetup; window.startEngFromSetup=startEngFromSetup;
+
+/* ================================================
+   PART 5: 수학 학습 & 채점
+   ================================================ */
+function screenStudy(){
+  var ps=S.problems;
+  if(!ps||!ps.length) return '<div style="padding:40px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px"><i class="ti ti-alert-circle" style="font-size:40px;color:var(--gray)"></i><p style="color:var(--gray)">수학 문제를 먼저 설정해주세요</p><button class="btn btn-c" onclick="go(&apos;mathSetup&apos;)" style="max-width:240px"><i class="ti ti-settings"></i> 문제 설정하기</button></div>';
+  var p=ps[S.curP];
+  var allDone=ps.every(function(pr){return S.answers[pr.id]&&S.answers[pr.id].trim();});
+  var hl=S.hl[p.id]||0;
+  var hintRows=hl>0?'<div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">'+p.hints.slice(0,hl).map(function(h){return '<div style="background:var(--gray-l);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--navy)">'+h+'</div>'}).join('')+'</div>':'';
+  var dotBtns=ps.map(function(pr,i){var bg=i===S.curP?'var(--coral)':S.answers[pr.id]?'var(--mint)':'#EBEBEB';var cl=(i===S.curP||S.answers[pr.id])?'var(--white)':'var(--gray)';return '<button onclick="S.curP='+i+';render()" style="width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;background:'+bg+';color:'+cl+'">'+(i+1)+'</button>';}).join('');
+  var submitRow=allDone?'<button class="btn btn-c" onclick="go(&apos;waiting&apos;)" style="animation:pulse 2s infinite"><i class="ti ti-send"></i> 답안 제출하기!</button>':'<p style="text-align:center;font-size:11px;color:var(--gray);padding:6px">모든 답안 입력 후 제출 가능</p>';
+  return '<div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)"><div class="hdr hdr-coral"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:13px;font-weight:700;color:#C0392B"><i class="ti ti-lock"></i> '+(S.mathGrade||'복습')+' · '+(p.unit||S.mathUnit)+'</div><div class="tag tc">'+((S.curP+1))+'/'+ps.length+'</div></div><div class="pt"><div class="pf" style="width:'+((S.curP+1)/ps.length*100)+'%;background:var(--coral)"></div></div></div><div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px"><div class="card"><div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap"><span class="tag tm" style="font-size:10px">'+(p.unit||S.mathUnit)+'</span><span class="tag ta" style="font-size:10px">난이도 '+(p.diff||S.mathDiff)+'</span></div><div style="background:var(--gray-l);border-radius:10px;padding:14px;margin-bottom:12px;white-space:pre-line;font-size:18px;font-weight:500;color:var(--navy);line-height:1.6"><i class="ti ti-pencil" style="color:var(--coral)"></i>  '+p.q+'</div><label style="font-size:11px;color:var(--gray);display:block;margin-bottom:5px">✏️ 내 답안</label><input type="text" id="ans'+p.id+'" value="'+(S.answers[p.id]||'')+'" placeholder="답을 입력하세요" oninput="S.answers['+p.id+']=this.value">'+(S.answers[p.id]?'<p style="font-size:10px;color:var(--mint);margin-top:3px"><i class="ti ti-check"></i> 저장됨</p>':'')+'</div><div class="card"><button onclick="useHint('+p.id+')" '+(hl>=3?'disabled':'')+' style="background:'+(hl<3?'var(--amber-ll)':'var(--gray-l)')+';color:'+(hl<3?'var(--amber-d)':'var(--gray)')+';border:.5px dashed '+(hl<3?'var(--amber)':'var(--border)')+';border-radius:10px;padding:10px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;width:100%"><i class="ti ti-bulb"></i> 힌트 보기 ('+hl+'/3회)</button>'+hintRows+'</div><div style="display:flex;gap:8px"><button class="btn btn-g" onclick="S.curP=Math.max(0,S.curP-1);render()" '+(S.curP===0?'disabled':'')+' style="flex:1;padding:10px"><i class="ti ti-arrow-left"></i> 이전</button><button onclick="S.curP=Math.min('+(ps.length-1)+',S.curP+1);render()" '+(S.curP===ps.length-1?'disabled':'')+' style="flex:1;background:'+(S.curP===ps.length-1?'var(--gray-l)':'var(--mint)')+';color:'+(S.curP===ps.length-1?'var(--gray)':'var(--white)')+';border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px">다음 <i class="ti ti-arrow-right"></i></button></div><div style="display:flex;gap:5px;justify-content:center">'+dotBtns+'</div>'+submitRow+'</div></div>';
+}
+function useHint(id){S.hl[id]=Math.min((S.hl[id]||0)+1,3);render();}
+function useRHint(id){S.rHL[id]=Math.min((S.rHL[id]||0)+1,3);render();}
+
+function screenWaiting(){return '<div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;background:#FAFAF8"><i class="ti ti-hourglass" style="font-size:56px;color:var(--coral);animation:floatY 2s ease-in-out infinite;margin-bottom:16px"></i><div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px">답안 제출 완료!</div><div style="font-size:13px;color:var(--gray);margin-bottom:24px">아빠 / 엄마가 채점 중이에요...</div><div class="card" style="max-width:290px;text-align:center;padding:14px"><p style="font-size:10px;color:var(--gray);margin-bottom:8px"><i class="ti ti-device-mobile"></i> 관리자 채점 (데모)</p><button class="btn btn-m" onclick="go(&apos;adminGrade&apos;)"><i class="ti ti-clipboard-check"></i> 관리자 채점 화면으로</button></div></div>';}
+
+function screenAdminGrade(){
+  var ps=S.problems; var allG=ps.every(function(p){return S.graded[p.id]!==undefined;});
+  var cIds=ps.filter(function(p){return S.graded[p.id]===true;}).map(function(p){return p.id;});
+  var wIds=ps.filter(function(p){return S.graded[p.id]===false;}).map(function(p){return p.id;});
+  var allCorrect=allG&&wIds.length===0; var hasWrong=allG&&wIds.length>0;
+  var problemRows=ps.map(function(p){
+    var g=S.graded[p.id];var isC=g===true;var isW=g===false;
+    var bc=isC?'var(--mint-l)':isW?'var(--coral-l)':'var(--border)';
+    var ansColor=isW?'var(--coral)':isC?'var(--mint)':'var(--navy)';
+    var returnNote=isW?'<div style="margin-top:7px;padding:7px 10px;background:#FCEBEB;border-radius:8px;border-left:3px solid #F7C1C1;font-size:11px;color:#A32D2D"><i class="ti ti-arrow-back-up"></i> 오답노트 저장 → 재도전 요청됩니다</div>':'';
+    return '<div class="card" style="border-color:'+bc+'"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><div style="display:flex;gap:4px;margin-bottom:7px;flex-wrap:wrap"><span class="tag tm" style="font-size:10px">'+(p.unit||S.mathUnit)+'</span><span class="tag ta" style="font-size:10px">난이도 '+(p.diff||S.mathDiff)+'</span></div><div style="font-size:12px;color:var(--navy);white-space:pre-line;margin-bottom:8px;font-weight:500">'+p.q+'</div><div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px"><div><span style="color:var(--gray)">하은 답: </span><span style="font-size:15px;font-weight:700;color:'+ansColor+'">'+(S.answers[p.id]||'?')+'</span></div><div><span style="color:var(--gray)">정답: </span><span style="font-weight:700;color:var(--mint)">'+p.ans+'</span></div></div><div style="background:var(--gray-l);border-radius:8px;padding:7px 10px;margin-top:8px;font-size:11px;color:var(--gray)"><i class="ti ti-notes"></i> '+p.exp+'</div>'+returnNote+'</div><div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0"><button onclick="S.graded['+p.id+']=true;saveState();render()" class="ob '+(isC?'oon':'oof')+'">⭕</button><button onclick="S.graded['+p.id+']=false;saveState();render()" class="ob '+(isW?'xon':'xof')+'">❌</button></div></div></div>';
+  }).join('');
+  var wrongTagRow=wIds.map(function(id){var p=ps.find(function(pr){return pr.id===id;});return '<span class="tag tr" style="font-size:10px"><i class="ti ti-x" style="font-size:9px"></i> '+(p?p.unit:id)+'</span>';}).join('');
+  var bottomSection=allCorrect
+    ?'<div style="background:var(--mint-ll);border-radius:14px;padding:14px;text-align:center;border:.5px solid var(--mint-l)"><i class="ti ti-circle-check" style="font-size:28px;color:var(--mint);display:block;margin-bottom:6px"></i><div style="font-size:14px;font-weight:700;color:var(--mint-d);margin-bottom:3px">모두 정답이에요! 🎉</div><div style="font-size:12px;color:var(--gray)">승인 버튼을 누르면 부모님 응원이 나옵니다!</div></div><button class="btn btn-m" onclick="doApprove()"><i class="ti ti-lock-open"></i> ✅ 최종 승인</button>'
+    :hasWrong?'<div style="background:#FCEBEB;border-radius:14px;padding:14px;border:.5px solid #F7C1C1"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><i class="ti ti-alert-circle" style="font-size:22px;color:var(--coral);flex-shrink:0"></i><div><div style="font-size:13px;font-weight:700;color:#C0392B">오답 '+wIds.length+'개 발견!</div><div style="font-size:11px;color:var(--gray)">오답노트에 저장 후 다시 풀어요</div></div></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">'+wrongTagRow+'</div><button class="btn btn-r" onclick="doReturn()"><i class="ti ti-arrow-back-up"></i> 🔄 오답 리턴 (재도전)</button></div>':'<p style="text-align:center;font-size:12px;color:var(--gray);padding:10px">채점 진행 중...</p>';
+  return '<div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)"><div class="hdr hdr-mint"><div style="font-size:15px;font-weight:700;color:var(--mint-d)"><i class="ti ti-clipboard-check"></i> 하은이 답안 채점</div></div><div style="display:flex;border-bottom:.5px solid var(--border)"><div style="flex:1;padding:10px;text-align:center;border-right:.5px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--mint)">'+cIds.length+'</div><div style="font-size:10px;color:var(--gray)">정답</div></div><div style="flex:1;padding:10px;text-align:center;border-right:.5px solid var(--border)"><div style="font-size:20px;font-weight:900;color:var(--coral)">'+wIds.length+'</div><div style="font-size:10px;color:var(--gray)">오답</div></div><div style="flex:1;padding:10px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--mint)">+'+(cIds.length*S.creditPerQ).toLocaleString()+'원</div><div style="font-size:10px;color:var(--gray)">적립예정</div></div></div><div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px">'+problemRows+bottomSection+'</div></div>';
+}
+
+function doApprove(){
+  S.firstCorrect=S.problems.filter(function(p){return S.graded[p.id]===true;}).length;
+  S.credits+=(S.firstCorrect*(S.creditPerQ||500));
+  if(!S.studyHistory) S.studyHistory=[];
+  var subj = S.problems[0] && S.problems[0].unit === '영어문법' ? '영어문법' : '수학';
+  var unitStr = S.problems[0] ? S.problems[0].unit : (S.mathUnit||'단원');
+  S.studyHistory.push({type:'study', subject:subj, unit:unitStr, count:S.problems.length, correct:S.firstCorrect, date:new Date().toLocaleDateString('ko-KR')});
   saveState(); go('approved');
 }
 
-function doRetryReturn() {
-  const rProblems = getStudyProblems().filter(p=>S.rIds.includes(p.id));
-  const stillWrong = rProblems.filter(p=>S.rGraded[p.id]===false).map(p=>p.id);
-  rProblems.filter(p=>S.rGraded[p.id]===true).forEach(p => { const n=S.odapNote.find(n=>n.id===p.id); if(n)n.solved=true; });
-  stillWrong.forEach(id => { const n=S.odapNote.find(n=>n.id===id); if(n){n.retries++;n.wrongAns=S.rAnswers[id]||'?';} });
-  S.rIds=stillWrong; S.rAnswers={}; S.rHints={}; S.rGraded={}; S.curR=0; S.round++;
-  saveState(); go('retry');
+function finishEngStudy() {
+  var count = S.engWords ? S.engWords.length : 0;
+  S.credits = (S.credits || 0) + (count * (S.creditPerQ || 500));
+  if(!S.studyHistory) S.studyHistory=[];
+  S.studyHistory.push({type:'study', subject:'영단어', unit:'단어 암기', count:count, correct:count, date:new Date().toLocaleDateString('ko-KR')});
+  saveState();
+  alert('🎉 단어 학습을 완료했습니다! 크레딧이 적립되었습니다.');
+  go('studentHome');
+}
+window.finishEngStudy = finishEngStudy;
+
+function doReturn(){
+  var wIds=S.problems.filter(function(p){return S.graded[p.id]===false;}).map(function(p){return p.id;});
+  S.firstCorrect=S.problems.filter(function(p){return S.graded[p.id]===true;}).length;
+  wIds.forEach(function(id){
+    var p=S.problems.find(function(pr){return pr.id===id;});
+    var ex=S.odapNote.find(function(n){return n.id===id;});
+    if(ex){ex.retries++;ex.wrongAns=S.answers[id]||'?';}
+    else S.odapNote.push({id:id,q:p.q,unit:p.unit||S.mathUnit,wrongAns:S.answers[id]||'?',ans:p.ans,date:new Date().toLocaleDateString('ko-KR'),retries:1,solved:false});
+  });
+  S.rIds=wIds;S.rAns={};S.rHL={};S.rGraded={};S.curR=0;S.round++; saveState(); go('retry');
 }
 
-/* ══ PWA 서비스 워커 등록 ══ */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js')
-      .then(reg => console.log('[PWA] 서비스 워커 등록 완료:', reg.scope))
-      .catch(err => console.log('[PWA] 서비스 워커 오류:', err));
+function screenRetry(){
+  var rp=S.problems.filter(function(p){return S.rIds.includes(p.id);});
+  if(!rp.length) return '<div style="padding:40px;text-align:center;color:var(--gray)">재도전 문제가 없어요</div>';
+  var p=rp[S.curR]; var allDone=rp.every(function(pr){return S.rAns[pr.id]&&S.rAns[pr.id].trim();});
+  var hl=S.rHL[p.id]||0; var note=S.odapNote.find(function(n){return n.id===p.id;});
+  var hintRows=hl>0?'<div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">'+p.hints.slice(0,hl).map(function(h){return '<div style="background:var(--gray-l);border-radius:8px;padding:8px 10px;font-size:12px">'+h+'</div>'}).join('')+'</div>':'';
+  var dotBtns=rp.map(function(pr,i){var bg=i===S.curR?'var(--coral)':S.rAns[pr.id]?'var(--mint)':'#EBEBEB';var cl=(i===S.curR||S.rAns[pr.id])?'var(--white)':'var(--gray)';return '<button onclick="S.curR='+i+';render()" style="width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;background:'+bg+';color:'+cl+'">'+(i+1)+'</button>';}).join('');
+  return '<div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)"><div class="hdr hdr-red"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:14px;font-weight:700;color:#A32D2D"><i class="ti ti-refresh"></i> 재도전! '+S.round+'차</div><div class="tag tr">'+((S.curR+1))+'/'+rp.length+'</div></div><div class="pt"><div class="pf" style="width:'+((S.curR+1)/rp.length*100)+'%;background:var(--coral)"></div></div></div><div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px"><div style="background:var(--amber-ll);border:.5px solid #FAC775;border-radius:10px;padding:10px;font-size:12px;color:var(--amber-d)"><i class="ti ti-bulb"></i> 틀려도 괜찮아! 다시 도전하면 돼!</div><div class="card"><div style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap"><span class="tag tm">'+(p.unit||S.mathUnit)+'</span><span class="tag tr" style="font-size:10px"><i class="ti ti-refresh"></i> 재도전</span></div><div style="background:var(--gray-l);border-radius:10px;padding:12px;margin-bottom:10px;white-space:pre-line;font-size:17px;font-weight:500;color:var(--navy);line-height:1.6">'+p.q+'</div>'+(note?'<div style="background:#FCEBEB;border-radius:8px;padding:7px 10px;margin-bottom:10px;font-size:12px;color:#A32D2D;border-left:3px solid #F7C1C1">이전에 틀린 답: <strong style="text-decoration:line-through">'+note.wrongAns+'</strong> ❌ → 이번엔 제대로!</div>':'')+'<label style="font-size:11px;color:var(--gray);display:block;margin-bottom:5px">✏️ 새 답안</label><input type="text" id="rans'+p.id+'" value="'+(S.rAns[p.id]||'')+'" placeholder="다시 답을 입력하세요" oninput="S.rAns['+p.id+']=this.value">'+(S.rAns[p.id]?'<p style="font-size:10px;color:var(--mint);margin-top:3px"><i class="ti ti-check"></i> 저장됨</p>':'')+'</div><div class="card"><button onclick="useRHint('+p.id+')" '+(hl>=3?'disabled':'')+' style="background:'+(hl<3?'var(--amber-ll)':'var(--gray-l)')+';color:'+(hl<3?'var(--amber-d)':'var(--gray)')+';border:.5px dashed '+(hl<3?'var(--amber)':'var(--border)')+';border-radius:10px;padding:9px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;width:100%"><i class="ti ti-bulb"></i> 힌트 ('+hl+'/3)</button>'+hintRows+'</div><div style="display:flex;gap:8px"><button class="btn btn-g" onclick="S.curR=Math.max(0,S.curR-1);render()" '+(S.curR===0?'disabled':'')+' style="flex:1;padding:10px"><i class="ti ti-arrow-left"></i> 이전</button><button onclick="S.curR=Math.min('+(rp.length-1)+',S.curR+1);render()" '+(S.curR===rp.length-1?'disabled':'')+' style="flex:1;background:'+(S.curR===rp.length-1?'var(--gray-l)':'var(--coral)')+';color:'+(S.curR===rp.length-1?'var(--gray)':'var(--white)')+';border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px">다음 <i class="ti ti-arrow-right"></i></button></div><div style="display:flex;gap:5px;justify-content:center">'+dotBtns+'</div>'+(allDone?'<button class="btn btn-r" onclick="go(&apos;retryWaiting&apos;)" style="animation:pulse 2s infinite"><i class="ti ti-send"></i> 재도전 제출!</button>':'<p style="text-align:center;font-size:11px;color:var(--gray);padding:6px">오답 전부 입력 후 제출</p>')+'</div></div>';
+}
+function screenRetryWaiting(){ return '<div class="screen" style="min-height:calc(100vh - 38px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;background:#FAFAF8"><i class="ti ti-hourglass" style="font-size:56px;color:var(--coral);animation:floatY 2s ease-in-out infinite;margin-bottom:16px"></i><div class="tag tr" style="margin-bottom:12px"><i class="ti ti-refresh"></i> '+S.round+'차 재도전 제출!</div><div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px">답안 제출 완료!</div><button class="btn btn-m" onclick="go(&apos;adminRetry&apos;)" style="margin-top:20px"><i class="ti ti-clipboard-check"></i> 관리자 재채점 (데모)</button></div>'; }
+
+function screenAdminRetry(){
+  var rp=S.problems.filter(function(p){return S.rIds.includes(p.id);}); var allG=rp.every(function(p){return S.rGraded[p.id]!==undefined;});
+  var cIds=rp.filter(function(p){return S.rGraded[p.id]===true;}).map(function(p){return p.id;});
+  var wIds=rp.filter(function(p){return S.rGraded[p.id]===false;}).map(function(p){return p.id;});
+  var allC=allG&&wIds.length===0; var hasW=allG&&wIds.length>0;
+  var rows=rp.map(function(p){var g=S.rGraded[p.id]; var isC=g===true; var isW=g===false; var note=S.odapNote.find(function(n){return n.id===p.id;});return '<div class="card" style="border-color:'+(isC?'var(--mint-l)':isW?'var(--coral-l)':'var(--border)')+'"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><div style="display:flex;gap:4px;margin-bottom:7px;flex-wrap:wrap"><span class="tag tr" style="font-size:10px"><i class="ti ti-refresh"></i> '+S.round+'차</span><span class="tag tm" style="font-size:10px">'+(p.unit||S.mathUnit)+'</span></div><div style="white-space:pre-line;font-size:12px;color:var(--navy);margin-bottom:8px;font-weight:500">'+p.q+'</div>'+(note?'<div style="font-size:11px;margin-bottom:4px"><span style="color:var(--gray)">이전 틀린 답: </span><span style="color:var(--coral);text-decoration:line-through">'+note.wrongAns+'</span> ❌</div>':'')+'<div style="font-size:11px"><span style="color:var(--gray)">새로운 답: </span><span style="font-size:15px;font-weight:700;color:'+(isC?'var(--mint)':isW?'var(--coral)':'var(--navy)')+'">'+(S.rAns[p.id]||'?')+'</span></div><div style="font-size:11px;margin-top:2px"><span style="color:var(--gray)">정답: </span><span style="font-weight:700;color:var(--mint)">'+p.ans+'</span></div><div style="background:var(--gray-l);border-radius:8px;padding:7px 10px;margin-top:8px;font-size:11px;color:var(--gray)">'+p.exp+'</div></div><div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0"><button onclick="S.rGraded['+p.id+']=true;saveState();render()" class="ob '+(isC?'oon':'oof')+'">⭕</button><button onclick="S.rGraded['+p.id+']=false;saveState();render()" class="ob '+(isW?'xon':'xof')+'">❌</button></div></div></div>';}).join('');
+  var bottom=allC?'<div style="background:var(--mint-ll);border-radius:14px;padding:14px;text-align:center;border:.5px solid var(--mint-l)"><i class="ti ti-circle-check" style="font-size:28px;color:var(--mint);display:block;margin-bottom:6px"></i><div style="font-size:14px;font-weight:700;color:var(--mint-d)">재도전 전부 정답! 🎉</div></div><button class="btn btn-m" onclick="doRetryApprove()"><i class="ti ti-lock-open"></i> ✅ 최종 승인</button>':hasW?'<button class="btn btn-r" onclick="doRetryReturn()"><i class="ti ti-arrow-back-up"></i> 오답 리턴 ('+(S.round+1)+'차 재도전)</button>':'<p style="text-align:center;font-size:12px;color:var(--gray)">재채점 중...</p>';
+  return '<div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)"><div class="hdr hdr-red"><div style="font-size:15px;font-weight:700;color:#A32D2D"><i class="ti ti-clipboard-check"></i> 재도전 채점 · '+S.round+'차</div></div><div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px">'+rows+bottom+'</div></div>';
+}
+function doRetryApprove(){var rp=S.problems.filter(function(p){return S.rIds.includes(p.id);}); var rc=rp.filter(function(p){return S.rGraded[p.id]===true;}).length;rp.forEach(function(p){var n=S.odapNote.find(function(n){return n.id===p.id;});if(n&&S.rGraded[p.id]) n.solved=true;});S.credits+=(S.firstCorrect+rc)*S.creditPerQ; saveState(); go('approved');}
+function doRetryReturn(){var rp=S.problems.filter(function(p){return S.rIds.includes(p.id);}); var sw=rp.filter(function(p){return S.rGraded[p.id]===false;}).map(function(p){return p.id;});rp.filter(function(p){return S.rGraded[p.id]===true;}).forEach(function(p){var n=S.odapNote.find(function(n){return n.id===p.id;});if(n) n.solved=true;});sw.forEach(function(id){var n=S.odapNote.find(function(n){return n.id===id;});if(n){n.retries++;n.wrongAns=S.rAns[id]||'?';}});S.rIds=sw; S.rAns={}; S.rHL={}; S.rGraded={}; S.curR=0; S.round++; saveState(); go('retry');}
+
+function screenApproved(){
+  cheerUp();
+  var rc=S.rIds.filter(function(id){return S.rGraded[id]===true;}).length;
+  var tot=S.firstCorrect+(S.rIds.length?rc:0); var earned=tot*S.creditPerQ;
+  var odapCount=S.odapNote.filter(function(n){return !n.solved;}).length;
+  return '<div class="screen" style="min-height:calc(100vh - 38px);background:var(--mint-ll);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center"><i class="ti ti-confetti" style="font-size:64px;color:var(--mint);animation:popIn .5s ease,floatY 3s .5s ease-in-out infinite;margin-bottom:16px"></i><div style="font-size:28px;font-weight:900;color:var(--mint-d);margin-bottom:6px">참 잘했어요! ⭐</div><div style="font-size:13px;color:var(--mint-d);margin-bottom:28px">아빠 엄마의 응원을 들어봐! 🔊</div><div class="card" style="max-width:290px;padding:20px;margin-bottom:18px;border-color:var(--mint-l)"><div style="font-size:11px;color:var(--gray);margin-bottom:5px">이번에 적립된 크레딧</div><div style="font-size:42px;font-weight:900;color:var(--coral)">+'+earned.toLocaleString()+'원</div></div>'+(odapCount?'<div class="tag tr" style="margin-bottom:14px"><i class="ti ti-notes"></i> 오답노트 '+odapCount+'개 남음</div>':'')+'<button class="btn btn-m" onclick="go(&apos;studentHome&apos;)" style="max-width:280px"><i class="ti ti-home"></i> 홈으로 가기</button></div>';
+}
+
+/* ================================================
+   PART 7: 영어 학습 (STT 발음 인식)
+   ================================================ */
+function nextEngWord(wsLength) {
+  if (S.engIdx < wsLength - 1) { S.engIdx++; S.wordTyped = false; S.wordSpoken = false; render(); }
+  else { finishEngStudy(); }
+}
+function checkWordTyping(target) {
+  var el = document.getElementById('eng-type-input'); if(!el) return;
+  var val = el.value.trim().toLowerCase();
+  if(val === target.toLowerCase()) { S.wordTyped = true; toast('✏️ 정확하게 썼어요!', 2000); render(); }
+  else { toast('❌ 철자가 틀렸어요. 다시 확인해보세요!', 2000); }
+}
+function screenEngStudy(){
+  var ws=S.engWords||[]; var content='';
+  if(S.engAiGen){ content='<div style="padding:40px 20px;text-align:center"><span class="ai-spin" style="border-color:var(--mint);border-top-color:transparent;width:30px;height:30px;margin-bottom:10px"></span><br><br><b>구글 AI가 하은이 맞춤 단어를 고르고 있어요...</b></div>'; }
+  else if(ws.length===0){ content='<div style="padding:40px 20px;text-align:center;color:var(--gray)">생성된 단어가 없습니다.</div>'; }
+  else {
+    var idx=(S.engIdx||0)%ws.length; var w=ws[idx]; var safeW=w.w.replace(/'/g,"\'");
+    var canNext=(S.wordTyped===true&&S.wordSpoken===true);
+    var typedBadge=S.wordTyped?'<span class="tag tm" style="font-size:11px"><i class="ti ti-check"></i> 쓰기 완료</span>':'<span class="tag tr" style="font-size:11px">쓰기 미완료</span>';
+    var spokenBadge=S.wordSpoken?'<span class="tag tm" style="font-size:11px"><i class="ti ti-check"></i> 말하기 완료</span>':'<span class="tag tr" style="font-size:11px">말하기 미완료</span>';
+    content='<div style="padding:14px;text-align:center">'
+      +'<div class="card" style="padding:30px 20px;margin-bottom:10px"><div style="font-size:12px;color:var(--gray);margin-bottom:10px">'+(idx+1)+' / '+ws.length+'</div><div style="font-size:40px;font-weight:900;color:var(--navy)">'+w.w+'</div><div style="font-size:14px;color:var(--gray);margin-bottom:16px">[ '+w.p+' ]</div><div style="font-size:24px;font-weight:700;color:var(--coral)">'+w.m+'</div><div style="margin-top:20px;background:var(--gray-l);padding:10px;border-radius:10px;font-size:13px">'+w.ex+'<br><span style="color:var(--mint-d)">'+w.exK+'</span></div></div>'
+      +'<div class="card" style="margin-bottom:10px;background:#F0FBF9;border-color:var(--mint-l)"><div style="font-size:12px;font-weight:700;color:var(--mint-d);margin-bottom:8px">1단계: 철자 쓰기 ✏️</div>'
+      +'<div style="display:flex;gap:8px"><input type="text" id="eng-type-input" placeholder="위 단어를 똑같이 입력하세요" autocomplete="off" style="flex:1" '+(S.wordTyped?'disabled':'')+'><button class="btn btn-m" onclick="checkWordTyping(&apos;'+safeW+'&apos;)" style="width:auto;padding:0 16px" '+(S.wordTyped?'disabled':'')+'>확인</button></div></div>'
+      +'<div class="card" style="margin-bottom:16px;background:#FFF0F0;border-color:var(--coral-l)"><div style="font-size:12px;font-weight:700;color:var(--coral-d);margin-bottom:8px">2단계: 원어민 발음 듣고 말하기 🎙️</div>'
+      +'<div style="display:flex;gap:8px"><button class="btn btn-g" onclick="speak(&apos;'+safeW+'&apos;)" style="flex:1"><i class="ti ti-volume"></i> 발음 듣기</button><button class="btn btn-c" onclick="startSpeechRecognition(&apos;'+safeW+'&apos;)" style="flex:1" '+(S.wordSpoken?'disabled':'')+'><i class="ti ti-microphone"></i> 말해보기</button></div></div>'
+      +'<div style="display:flex;justify-content:center;gap:10px;margin-bottom:16px">'+typedBadge+spokenBadge+'</div>'
+      +'<div style="display:flex;gap:8px"><button class="btn btn-n" onclick="nextEngWord('+ws.length+')" style="flex:1;opacity:'+(canNext?'1':'0.4')+'" '+(canNext?'':'disabled')+'>'+(canNext?'다음 단어 →':'쓰기와 말하기를 모두 완료하세요')+'</button></div></div>';
+  }
+  return '<div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)"><div class="hdr hdr-mint"><div style="font-size:15px;font-weight:700;color:var(--mint-d)"><i class="ti ti-language"></i> 영단어 완전 학습 ('+(S.engGrade||'중1')+')</div></div><div style="flex:1;overflow-y:auto">'+content+'</div></div>';
+}
+window.nextEngWord=nextEngWord; window.checkWordTyping=checkWordTyping;
+
+/* ================================================
+   PART 8: 관리자 화면
+   ================================================ */
+function screenAdmin(){
+  var tabs=[
+    {id:'dash',i:'ti-dashboard',l:'현황'},{id:'grade',i:'ti-clipboard-check',l:'채점'},
+    {id:'sch',i:'ti-clock',l:'스케줄'},{id:'reward',i:'ti-gift',l:'보상'},
+    {id:'odap',i:'ti-notes',l:'오답'},{id:'bank',i:'ti-database',l:'문제은행'},{id:'settings',i:'ti-settings',l:'설정'}
+  ];
+  var tabBtns=tabs.map(function(t){return '<button onclick="S.adminTab=&apos;'+t.id+'&apos;;saveState();render()" class="tb'+(S.adminTab===t.id?' act':'')+'" style="min-width:48px;padding:9px 2px 7px"><i class="ti '+t.i+'"></i>'+t.l+'</button>';}).join('');
+  var contentFns={dash:adminTabDash,grade:adminTabGrade,sch:adminTabSch,reward:adminTabReward,odap:adminTabOdap,bank:adminTabBank,settings:adminTabSettings};
+  var tabContent=(contentFns[S.adminTab]||adminTabDash)();
+  return '<div class="screen" style="display:flex;flex-direction:column;min-height:calc(100vh - 38px)"><div class="hdr hdr-navy"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;opacity:.7">관리자 대시보드</div><div style="font-size:18px;font-weight:700"><i class="ti ti-settings"></i> 매일-스터디 v3.0</div></div><button class="btn btn-g" onclick="go(&apos;login&apos;)" style="width:auto;padding:8px 12px;font-size:11px;color:var(--white);background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3)">나가기 <i class="ti ti-logout"></i></button></div></div><div class="tab-bar">'+tabBtns+'</div><div style="flex:1;padding:12px;overflow-y:auto">'+tabContent+'</div></div>';
+}
+
+function adminTabBank(){
+  var bank = S.questionBank || [];
+  var bankRows = bank.length ? bank.map(function(q){
+    return '<div class="card" style="margin-bottom:8px;padding:10px;border-color:var(--border)"><div style="display:flex;justify-content:space-between;align-items:flex-start"><span class="tag tm" style="font-size:10px;margin-bottom:6px">'+q.unit+'</span><button onclick="deleteBankQ('+q.id+')" style="background:transparent;border:none;color:var(--coral);cursor:pointer"><i class="ti ti-trash"></i></button></div><div style="font-size:12px;font-weight:500;color:var(--navy);white-space:pre-line">'+q.q+'</div><div style="font-size:11px;color:var(--gray);margin-top:4px">정답: <span style="color:var(--mint);font-weight:700">'+q.ans+'</span></div></div>';
+  }).join('') : '<div style="padding:20px;text-align:center;color:var(--gray);font-size:12px">저장된 문제가 없습니다.</div>';
+  var mathUnits = MATH_UNITS[S.mathGrade||'중1'] || [];
+  var unitOptions = '<optgroup label="수학">' + mathUnits.map(function(u){return '<option value="'+u+'">'+u+'</option>'}).join('') + '</optgroup><optgroup label="영어"><option value="영어문법">영어문법</option></optgroup>';
+  return '<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<div class="card" style="background:#F0FBF9;border-color:var(--mint-l)">'
+    +'<div style="font-size:14px;font-weight:700;color:var(--mint-d);margin-bottom:8px"><i class="ti ti-file-upload"></i> 파일 업로드 자동 추출 (AI 파싱)</div>'
+    +'<p style="font-size:11px;color:var(--gray);margin-bottom:12px">PDF, 이미지(JPG, PNG), Excel 파일을 올려주시면 AI가 문제를 추출해 은행에 저축합니다.</p>'
+    +'<select id="bank-file-unit" style="margin-bottom:8px;padding:8px;font-size:13px">'+unitOptions+'</select>'
+    +'<input type="file" id="bank-file" accept=".pdf,.xlsx,.xlsm,.hwp,.jpg,.jpeg,.png" style="margin-bottom:8px;font-size:12px;width:100%">'
+    +'<button class="btn btn-m" id="btn-parse-file" onclick="processBankFile()" style="padding:10px;font-size:13px"><i class="ti ti-wand"></i> 파일에서 문제 자동 추출하기</button>'
+    +'<div id="bank-parse-result" style="margin-top:10px"></div>'
+    +'</div>'
+    +'<div class="card" style="background:#FFF0F0;border-color:var(--coral-l)"><div style="font-size:14px;font-weight:700;color:var(--coral-d);margin-bottom:8px"><i class="ti ti-database"></i> 수동 문제 등록 (비상용)</div>'
+    +'<p style="font-size:11px;color:var(--gray);margin-bottom:12px">AI 통신 실패 시, 은행에 저축된 문제를 우선 꺼내어 사용합니다.</p>'
+    +'<select id="bank-unit" style="margin-bottom:8px;padding:8px;font-size:13px">'+unitOptions+'</select>'
+    +'<textarea id="bank-q" placeholder="문제 내용 입력..." style="margin-bottom:8px;height:60px;padding:8px;font-size:13px;width:100%;border:.5px solid var(--border);border-radius:8px;font-family:inherit;outline:none;resize:vertical"></textarea>'
+    +'<input type="text" id="bank-ans" placeholder="정답 입력" style="margin-bottom:8px;padding:8px;font-size:13px">'
+    +'<button class="btn btn-c" onclick="saveBankQ()" style="padding:10px;font-size:13px"><i class="ti ti-plus"></i> 문제 저축하기</button>'
+    +'</div>'
+    +'<div><div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px">저장된 문제 목록 ('+bank.length+')</div>'+bankRows+'</div>'
+    +'</div>';
+}
+
+function saveBankQ(){
+  var u = document.getElementById('bank-unit').value;
+  var q = document.getElementById('bank-q').value.trim();
+  var a = document.getElementById('bank-ans').value.trim();
+  if(!q || !a) { toast('문제와 정답을 모두 입력하세요!'); return; }
+  if(!S.questionBank) S.questionBank = [];
+  S.questionBank.push({id:Date.now(), unit:u, q:q, ans:a, hints:['문제은행에서 출제됨'], exp:'문제은행 문제', diff:'중'});
+  saveState(); render(); toast('✅ 문제은행에 저장되었습니다!');
+}
+function deleteBankQ(id){
+  confirmModal('이 문제를 문제은행에서 삭제할까요?', function(){
+    S.questionBank = (S.questionBank||[]).filter(function(q){ return q.id !== id; });
+    saveState(); render(); toast('🗑️ 문제가 삭제되었습니다.');
+  });
+}
+window.saveBankQ = saveBankQ; window.deleteBankQ = deleteBankQ;
+
+/* ================================================
+   ★ 핀셋 수정 1: processBankFile - 에러 메시지 개선
+   ★ 핀셋 수정 2: callGeminiVision - 모델 사용자 설정 반영
+   ★ 핀셋 수정 3: callClaudeForParsing - generationConfig 중복 제거 (핵심 버그)
+   ================================================ */
+async function processBankFile() {
+  var fileInput = document.getElementById('bank-file');
+  var unitSelect = document.getElementById('bank-file-unit');
+  var btn = document.getElementById('btn-parse-file');
+  var resultDiv = document.getElementById('bank-parse-result');
+
+  if (!fileInput.files || fileInput.files.length === 0) { toast('업로드할 파일을 먼저 선택해주세요!'); return; }
+  if (!S.settings || !S.settings.apiKey) { alert("설정 탭에서 API Key를 먼저 등록해주세요!"); return; }
+
+  var file = fileInput.files[0];
+  var unit = unitSelect.value;
+  var ext = file.name.split('.').pop().toLowerCase();
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ai-spin"></span> 파일을 분석하고 있어요...';
+  if(resultDiv) resultDiv.innerHTML = '';
+
+  try {
+    var extractedText = '';
+
+   /* Phase 1: PDF → 텍스트 추출 */
+    if (ext === 'pdf') {
+      if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:var(--mint-ll);border-radius:8px;font-size:12px;color:var(--mint-d)">📄 PDF 텍스트 추출 중...</div>';
+      extractedText = await extractTextFromPDF(file);
+      S._lastPdfBase64 = await readFileAsBase64(file); /* ← 이 줄만 추가 */
+    }
+    /* Phase 2: 이미지 → Gemini Vision */
+    else if (['jpg', 'jpeg', 'png'].indexOf(ext) !== -1) {
+      if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:var(--mint-ll);border-radius:8px;font-size:12px;color:var(--mint-d)">🖼️ 이미지 분석 중... (30초~1분 소요)</div>';
+      var base64Data = await readFileAsBase64(file);
+      var mimeType = (ext === 'png') ? 'image/png' : 'image/jpeg';
+      var visionResult = await callGeminiVision(base64Data, mimeType, unit, resultDiv);
+      if (visionResult && visionResult.length > 0) {
+        if (!S.questionBank) S.questionBank = [];
+        visionResult.forEach(function(q) {
+          S.questionBank.push({...q, id: Date.now() + Math.floor(Math.random()*1000)});
+        });
+        saveState(); render();
+        toast('✅ 이미지에서 ' + visionResult.length + '개 문제를 추출했습니다!');
+        return;
+      }
+      return;
+    }
+    /* Phase 3: 엑셀/HWP */
+    else {
+      if(ext === 'hwp'){
+        if(resultDiv) resultDiv.innerHTML = '<div style="padding:12px;background:#FCEBEB;border-radius:8px;font-size:12px;color:#C0392B">⚠️ HWP 파일은 직접 파싱이 어렵습니다.<br><b>한글 → 다른 이름으로 저장 → PDF</b>로 변환 후 다시 시도해주세요.</div>';
+        return;
+      }
+      if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:var(--mint-ll);border-radius:8px;font-size:12px;color:var(--mint-d)">📊 엑셀/파일 처리 중...</div>';
+      try {
+        var rawBase = await readFileAsBase64(file);
+        var mimeType2 = 'application/octet-stream';
+        var tempResult = await callGeminiVision(rawBase, mimeType2, unit, resultDiv);
+        if (tempResult && tempResult.length > 0) {
+          if (!S.questionBank) S.questionBank = [];
+          tempResult.forEach(function(q) {
+            S.questionBank.push({...q, id: Date.now() + Math.floor(Math.random()*1000)});
+          });
+          saveState(); render();
+          toast('✅ ' + tempResult.length + '개 문제를 추출했습니다!');
+          return;
+        }
+      } catch(e) { /* 텍스트 파싱으로 폴백 */ }
+    }
+
+    /* Phase 4: 텍스트 → Gemini 구조화 파싱 */
+    if (extractedText && extractedText.length > 50) {
+      if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:var(--mint-ll);border-radius:8px;font-size:12px;color:var(--mint-d)">🤖 AI가 문제 구조를 분석 중... (30초~1분 소요)</div>';
+      var claudeResult = await callClaudeForParsing(extractedText, unit, resultDiv);
+      if (claudeResult && claudeResult.length > 0) {
+        if (!S.questionBank) S.questionBank = [];
+        claudeResult.forEach(function(q) {
+          S.questionBank.push({...q, id: Date.now() + Math.floor(Math.random()*1000)});
+        });
+        saveState(); render();
+        toast('✅ AI가 ' + claudeResult.length + '개 문제를 완벽히 파싱했습니다!');
+      } else {
+        if(resultDiv) resultDiv.innerHTML = '<div style="padding:12px;background:#FCEBEB;border-radius:8px;font-size:12px;color:#C0392B">⚠️ 텍스트 추출은 성공했으나 문제 구조를 인식하지 못했습니다.<br>직접 입력 기능을 이용해주세요.</div>';
+      }
+    } else {
+      if(resultDiv) resultDiv.innerHTML = '<div style="padding:12px;background:#FCEBEB;border-radius:8px;font-size:12px;color:#C0392B">❌ 파일에서 텍스트를 추출할 수 없습니다.<br>PDF 파일을 사용하거나 JPG/PNG 사진으로 촬영 후 업로드해주세요.</div>';
+    }
+  } catch (error) {
+    console.error('파일 파싱 오류:', error);
+    if(resultDiv) resultDiv.innerHTML = '<div style="padding:12px;background:#FCEBEB;border-radius:8px;font-size:12px;color:#C0392B">❌ 오류 발생: '+error.message+'</div>';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-wand"></i> 파일에서 문제 자동 추출하기';
+    fileInput.value = '';
+  }
+}
+
+/* PDF 텍스트 추출 (pdf.js) */
+function extractTextFromPDF(file) {
+  return new Promise(function(resolve, reject) {
+    if (typeof pdfjsLib === 'undefined') {
+      reject(new Error('pdf.js 라이브러리가 로드되지 않았습니다. 인터넷 연결을 확인하세요.'));
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        var typedArray = new Uint8Array(e.target.result);
+        var loadingTask = pdfjsLib.getDocument({data: typedArray});
+        var pdf = await loadingTask.promise;
+        var allText = '';
+        for (var i = 1; i <= pdf.numPages; i++) {
+          var page = await pdf.getPage(i);
+          var textContent = await page.getTextContent();
+          var pageText = textContent.items.map(function(item) { return item.str; }).join(' ');
+          allText += '\n--- 페이지 ' + i + ' ---\n' + pageText;
+        }
+        resolve(allText);
+      } catch(err) { reject(err); }
+    };
+    reader.onerror = function() { reject(new Error('PDF 파일 읽기 실패')); };
+    reader.readAsArrayBuffer(file);
   });
 }
 
-/* ══ 알림 권한 설정 ══ */
-window.addEventListener('load', () => {
-  if (Notification.permission === 'default') {
-    /* 알림 권한은 관리자 화면에서 자연스럽게 요청 */
-  }
-});
+/* Base64 변환 유틸리티 */
+function readFileAsBase64(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result.split(',')[1]); };
+    reader.onerror = function() { reject(new Error('파일 읽기 오류')); };
+    reader.readAsDataURL(file);
+  });
+}
 
-/* ══ 시작 ══ */
-render();
+/* ★ 핀셋 수정 2: Gemini Vision (이미지용) - 모델을 사용자 설정으로 변경 + 에러 메시지 개선 */
+async function callGeminiVision(base64Data, mimeType, unit, resultDiv) {
+  /* ★ 수정: S.settings.mathModel 우선, 없으면 flash 기본 */
+  var model = (S.settings && S.settings.mathModel) || 'gemini-1.5-flash';
+  /* flash가 이미지 실패시 pro로 재시도 */
+  var modelsToTry = [model];
+  if(model !== 'gemini-1.5-flash') modelsToTry.push('gemini-1.5-flash');
+  if(model !== 'gemini-1.5-pro' && modelsToTry.indexOf('gemini-1.5-pro') === -1) modelsToTry.push('gemini-1.5-pro');
+
+  var prompt = '이 파일은 한국 중학교 수학 교재/시험지입니다. 단원: "' + unit + '"\n'
+    + '[추출 규칙]\n'
+    + '1. 모든 문제를 번호 순서대로 빠짐없이 추출\n'
+    + '2. 객관식 보기(①②③④⑤)도 문제 내용에 포함\n'
+    + '3. 정답란이 있으면 각 번호의 정답을 정확히 연결 (없으면 ans는 빈 문자열)\n'
+    + '4. 신문기사 등 비문제 텍스트는 제외\n\n'
+    + '단원 목록: 소인수분해, 정수와 유리수, 문자와 식, 일차방정식, 좌표와 그래프, '
+    + '정비례와 반비례, 기본 도형, 통계, 유리수와 순환소수, 단항식의 계산, '
+    + '다항식의 계산, 일차부등식, 연립일차방정식, 일차함수, 삼각형의 성질, '
+    + '도형의 닮음, 피타고라스 정리, 확률, 제곱근과 실수, 다항식의 인수분해, '
+    + '이차방정식, 이차함수, 삼각비, 원의 성질, 최대공약수와 최소공배수\n\n'
+    + 'JSON 배열만 응답 (앞뒤 텍스트 없음):\n'
+    + '[{"unit":"단원명","q":"문제내용","ans":"정답또는빈문자열","hints":["힌트"],"exp":"풀이","diff":"중"}]';
+
+  var lastErr = '';
+  for(var mi = 0; mi < modelsToTry.length; mi++){
+    var tryModel = modelsToTry[mi];
+    if(resultDiv && mi > 0) resultDiv.innerHTML = '<div style="padding:10px;background:var(--amber-ll);border-radius:8px;font-size:12px;color:var(--amber-d)">🔄 '+tryModel+'로 재시도 중...</div>';
+    try {
+      var response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/" + tryModel + ":generateContent?key=" + S.settings.apiKey,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: mimeType, data: base64Data } }] }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+          })
+        }
+      );
+      var data = await response.json();
+      if(data.error) { lastErr='['+data.error.code+'] '+data.error.message; continue; }
+      if(!data.candidates || !data.candidates[0]) { lastErr='응답 없음'; continue; }
+      var candidate = data.candidates[0];
+      if(candidate.finishReason && candidate.finishReason !== 'STOP') { lastErr='finishReason: '+candidate.finishReason; continue; }
+      var rawText = '';
+      if(candidate.content && candidate.content.parts && candidate.content.parts[0]) {
+        rawText = candidate.content.parts[0].text || '';
+      }
+      if(!rawText || rawText.length < 10) { lastErr='빈 응답'; continue; }
+      rawText = rawText.trim();
+      /* 3단계 안전 JSON 파싱 */
+      var parsed = null;
+      try {
+        var cleaned = rawText.replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
+        var s = cleaned.indexOf('['), e = cleaned.lastIndexOf(']');
+        if(s>=0 && e>s) cleaned = cleaned.slice(s, e+1);
+        parsed = JSON.parse(cleaned);
+      } catch(e1) {
+        try { var m2 = rawText.match(/\[[\s\S]*\]/); if(m2) parsed = JSON.parse(m2[0]); } catch(e2) {}
+      }
+      if(parsed && Array.isArray(parsed) && parsed.length > 0) return parsed;
+      lastErr = 'JSON 파싱 실패: '+rawText.slice(0,100);
+    } catch(err) { lastErr='네트워크 오류: '+err.message; }
+  }
+  /* 모든 모델 실패 */
+  if(resultDiv) resultDiv.innerHTML = '<div style="padding:12px;background:#FCEBEB;border-radius:8px;font-size:12px;color:#C0392B">'
+    +'<b>❌ AI 파싱 실패</b><br><br>'
+    +'<span style="font-size:11px">오류: '+lastErr+'</span><br><br>'
+    +'<span style="font-size:11px"><b>해결 방법:</b><br>'
+    +'① 설정탭에서 API Key 확인<br>'
+    +'② PDF 파일 크기 줄이기 (해당 단원 페이지만)<br>'
+    +'③ JPG/PNG 사진으로 변환 후 업로드<br>'
+    +'④ 직접 입력 기능 사용</span></div>';
+  return null;
+}
+
+/* ── Groq API 호출 (텍스트 구조화 파싱 전용) ── */
+async function callGroqForParsing(text, unit, resultDiv) {
+  if(!S.settings || !S.settings.groqApiKey) return null;
+
+  var prompt = '당신은 한국 중학교 수학 시험지 파싱 전문가입니다.\n\n'
+    + '아래 텍스트에서 수학 문제를 추출해 JSON 배열로만 응답하세요.\n\n'
+    + '[추출 규칙]\n'
+    + '1. 번호가 있는 문제만 추출 (1. 2. 3. 또는 1) 2) 형태)\n'
+    + '2. "[정답-N]" 표시가 있으면 해당 번호 문제의 정답으로 연결\n'
+    + '3. 보기(①②③④⑤)는 문제 내용에 포함\n'
+    + '4. 신문기사·설명문 등 비문제 텍스트 제외\n'
+    + '5. 수식기호(×÷²³√)는 그대로 유지\n\n'
+    + '단원: "' + unit + '"\n\n'
+    + '=== 시험지 텍스트 ===\n'
+    + text.substring(0, 12000) + '\n\n'
+    + '=== 응답 형식 (JSON 배열만, 앞뒤 텍스트 절대 금지) ===\n'
+    + '[{"unit":"' + unit + '","q":"문제내용","ans":"정답(없으면 빈 문자열)","hints":["힌트1","힌트2","힌트3"],"exp":"풀이","diff":"중"}]';
+
+  var models = ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'mixtral-8x7b-32768'];
+  var lastErr = '';
+
+  for(var mi = 0; mi < models.length; mi++) {
+    var model = models[mi];
+    if(resultDiv) resultDiv.innerHTML = '<div style="padding:10px;background:var(--mint-ll);border-radius:8px;font-size:12px;color:var(--mint-d)">'
+      +'⚡ Groq AI 분석 중 (<b>'+model+'</b>)...<br>'
+      +'<span style="font-size:10px;opacity:.7">Groq는 매우 빠릅니다 (보통 5~15초)</span></div>';
+    try {
+      var res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + S.settings.groqApiKey
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.1,
+          max_tokens: 8192
+        })
+      });
+      var data = await res.json();
+      if(data.error) { lastErr = '[Groq] ' + data.error.message; console.warn(lastErr); continue; }
+      var rawText = (data.choices && data.choices[0] && data.choices[0].message)
+        ? data.choices[0].message.content : '';
+      if(!rawText || rawText.length < 10) { lastErr = 'Groq 빈 응답'; continue; }
+
+      /* JSON 3단계 파싱 */
+      var parsed = null;
+      try {
+        var cleaned = rawText.trim().replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
+        var s = cleaned.indexOf('['), e = cleaned.lastIndexOf(']');
+        if(s>=0 && e>s) cleaned = cleaned.slice(s, e+1);
+        parsed = JSON.parse(cleaned);
+      } catch(e1) {
+        try { var m2 = rawText.match(/\[[\s\S]*\]/); if(m2) parsed = JSON.parse(m2[0]); } catch(e2) {}
+      }
+      if(parsed && Array.isArray(parsed) && parsed.length > 0) {
+        console.log('[Groq] 성공! 모델:', model, '문제수:', parsed.length);
+        return parsed.filter(function(item){ return item.q && item.q.trim().length > 3; });
+      }
+      lastErr = 'JSON 파싱 실패: ' + rawText.slice(0,100);
+    } catch(netErr) { lastErr = 'Groq 네트워크 오류: ' + netErr.message; }
+  }
+  console.warn('[Groq] 모든 모델 실패:', lastErr);
+  return null;
+}
+
+/* ══════════════════════════════════════════════
+   A테스트: Gemini PDF 직접 전송 (무료)
+   PDF 파일을 통째로 Gemini에게 눈으로 보여줌
+══════════════════════════════════════════════ */
+async function testA_GeminiPDFDirect(pdfBase64, unit) {
+  if(!S.settings || !S.settings.apiKey) return {ok:false, err:'Gemini API 키 없음', data:[]};
+  var prompt = '이 PDF는 한국 중학교 수학 기출문제집입니다.\n'
+    + '2단 컬럼(왼쪽/오른쪽) 레이아웃이며 수식이 포함되어 있습니다.\n\n'
+    + '모든 수학 문제를 순서대로 추출해 JSON 배열로만 답하세요.\n'
+    + '왼쪽 컬럼 문제 먼저, 오른쪽 컬럼 문제 순서로 추출하세요.\n\n'
+    + '[추출 규칙]\n'
+    + '1. 문제 번호가 있는 것만 추출 (01 02 03 또는 숫자+점 형태)\n'
+    + '2. 보기(①②③④⑤)는 문제 내용에 포함\n'
+    + '3. 수식은 그대로 표현 예: 2³×5²\n'
+    + '4. 단원명: "' + unit + '"\n\n'
+    + 'JSON 형식 (다른 텍스트 없이 배열만):\n'
+    + '[{"unit":"' + unit + '","q":"문제 전체 내용","ans":"","hints":[],"exp":"","diff":"중"}]';
+  try {
+    var res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent
+      { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{ parts:[
+            { inline_data:{ mime_type:'application/pdf', data:pdfBase64 } },
+            { text: prompt }
+          ]}],
+          generationConfig:{ temperature:0.1, maxOutputTokens:8192 }
+        })
+      }
+    );
+    var data = await res.json();
+    if(data.error) return {ok:false, err:'['+data.error.code+'] '+data.error.message, data:[]};
+    var raw = data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts
+      ? data.candidates[0].content.parts[0].text||'' : '';
+    var jm = raw.match(/\[[\s\S]*\]/);
+    if(!jm) return {ok:false, err:'JSON 형식 아님: '+raw.slice(0,80), data:[]};
+    var parsed = JSON.parse(jm[0]).filter(function(i){return i.q&&i.q.trim().length>3;});
+    return {ok:true, err:'', data:parsed};
+  } catch(e) { return {ok:false, err:e.message, data:[]}; }
+}
+
+/* ══════════════════════════════════════════════
+   B테스트: Claude API PDF 직접 전송 (소액유료)
+   Claude가 PDF를 네이티브로 처리 - 최고 정확도
+══════════════════════════════════════════════ */
+async function testB_ClaudeAPIPDF(pdfBase64, unit) {
+  if(!S.settings || !S.settings.claudeApiKey) return {ok:false, err:'Claude API 키 없음', data:[]};
+  var prompt = '이 PDF는 한국 중학교 수학 기출문제집입니다.\n'
+    + '2단 컬럼 레이아웃이며 수식·표·보기가 포함되어 있습니다.\n\n'
+    + '모든 수학 문제를 순서대로 추출해 JSON 배열로만 답하세요.\n\n'
+    + '[추출 규칙]\n'
+    + '1. 문제 번호가 있는 것만 추출\n'
+    + '2. 보기(①②③④⑤)는 문제 내용에 포함\n'
+    + '3. 수식 그대로 표현 예: 2³×5²\n'
+    + '4. 단원명: "' + unit + '"\n\n'
+    + 'JSON 형식 (배열만, 설명 없이):\n'
+    + '[{"unit":"' + unit + '","q":"문제 전체 내용","ans":"","hints":[],"exp":"","diff":"중"}]';
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': S.settings.claudeApiKey,
+        'anthropic-version':'2023-06-01'
+      },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:4096,
+        messages:[{ role:'user', content:[
+          { type:'document', source:{ type:'base64', media_type:'application/pdf', data:pdfBase64 } },
+          { type:'text', text:prompt }
+        ]}]
+      })
+    });
+    var data = await res.json();
+    if(data.error) return {ok:false, err:data.error.message, data:[]};
+    var raw = data.content&&data.content[0] ? data.content[0].text||'' : '';
+    var jm = raw.match(/\[[\s\S]*\]/);
+    if(!jm) return {ok:false, err:'JSON 형식 아님: '+raw.slice(0,80), data:[]};
+    var parsed = JSON.parse(jm[0]).filter(function(i){return i.q&&i.q.trim().length>3;});
+    return {ok:true, err:'', data:parsed};
+  } catch(e) { return {ok:false, err:e.message, data:[]}; }
+}
+
+/* ══════════════════════════════════════════════
+   메인 파싱 함수 - C안: A/B 동시 테스트 후 비교
+══════════════════════════════════════════════ */
+async function callClaudeForParsing(text, unit, resultDiv) {
+
+  /* PDF base64 데이터 확인 */
+  var pdfBase64 = S._lastPdfBase64 || null;
+
+  /* PDF base64가 없으면 기존 Groq/Gemini 텍스트 방식으로 폴백 */
+  if(!pdfBase64) {
+    if(S.settings && S.settings.groqApiKey) {
+      var gr = await callGroqForParsing(text, unit, resultDiv);
+      if(gr && gr.length > 0) return gr;
+    }
+    return null;
+  }
+
+  /* ── C안: 두 가지 동시 테스트 ── */
+  if(resultDiv) resultDiv.innerHTML =
+    '<div style="padding:10px;background:#f0f9ff;border-radius:8px;font-size:12px;color:#0369a1">'
+    +'⏳ A테스트(Gemini PDF직접) + B테스트(Claude API) 동시 실행 중...</div>';
+
+  var [resA, resB] = await Promise.all([
+    testA_GeminiPDFDirect(pdfBase64, unit),
+    testB_ClaudeAPIPDF(pdfBase64, unit)
+  ]);
+
+  /* ── 결과 비교 화면 출력 ── */
+  if(resultDiv) {
+    var html = '<div style="padding:10px;border-radius:8px;font-size:12px">';
+    html += '<div style="font-weight:700;margin-bottom:8px;font-size:13px">📊 A/B 테스트 결과 비교</div>';
+
+    /* A 결과 */
+    html += '<div style="background:'+(resA.ok?'#f0fdf4':'#fef2f2')+';border-radius:6px;padding:8px;margin-bottom:6px">';
+    html += '<div style="font-weight:600;color:'+(resA.ok?'#15803d':'#dc2626')+'">A. Gemini PDF 직접: '+(resA.ok?'✅ 성공 '+resA.data.length+'문제 추출':'❌ 실패')+'</div>';
+    if(!resA.ok) html += '<div style="color:#dc2626;font-size:11px">오류: '+resA.err+'</div>';
+    if(resA.ok && resA.data[0]) html += '<div style="color:#374151;margin-top:4px;font-size:11px">첫 문제 미리보기: '+resA.data[0].q.slice(0,60)+'...</div>';
+    html += '</div>';
+
+    /* B 결과 */
+    html += '<div style="background:'+(resB.ok?'#f0fdf4':'#fef2f2')+';border-radius:6px;padding:8px;margin-bottom:8px">';
+    html += '<div style="font-weight:600;color:'+(resB.ok?'#15803d':'#dc2626')+'">B. Claude API: '+(resB.ok?'✅ 성공 '+resB.data.length+'문제 추출':'❌ 실패')+'</div>';
+    if(!resB.ok) html += '<div style="color:#dc2626;font-size:11px">오류: '+resB.err+'</div>';
+    if(resB.ok && resB.data[0]) html += '<div style="color:#374151;margin-top:4px;font-size:11px">첫 문제 미리보기: '+resB.data[0].q.slice(0,60)+'...</div>';
+    html += '</div>';
+
+    /* 최종 결정 */
+    var winner = null;
+    if(resA.ok && resB.ok) {
+      winner = resB.data.length >= resA.data.length ? 'B' : 'A';
+      html += '<div style="background:#fef9c3;border-radius:6px;padding:8px;font-weight:600;color:#854d0e">🏆 더 많은 문제 추출: '+(winner==='B'?'Claude API (B)':'Gemini PDF (A)')+' 채택</div>';
+    } else if(resA.ok) {
+      winner = 'A';
+      html += '<div style="background:#fef9c3;border-radius:6px;padding:8px;font-weight:600;color:#854d0e">✅ Gemini PDF (A) 사용</div>';
+    } else if(resB.ok) {
+      winner = 'B';
+      html += '<div style="background:#fef9c3;border-radius:6px;padding:8px;font-weight:600;color:#854d0e">✅ Claude API (B) 사용</div>';
+    } else {
+      html += '<div style="background:#fee2e2;border-radius:6px;padding:8px;font-weight:600;color:#dc2626">❌ A/B 모두 실패 — API 키를 확인해주세요</div>';
+    }
+    html += '</div>';
+    resultDiv.innerHTML = html;
+
+    if(!winner) return null;
+    return winner === 'A' ? resA.data : resB.data;
+  }
+
+  /* resultDiv 없을 때 */
+  if(resB.ok && resB.data.length > 0) return resB.data;
+  if(resA.ok && resA.data.length > 0) return resA.data;
+  return null;
+}
+
+window.processBankFile = processBankFile;
+
+function adminTabDash(){
+  var hist=S.studyHistory||[];
+  var today=new Date().toLocaleDateString('ko-KR');
+  var todaySolved = hist.filter(function(h){return h.date===today && h.type==='study'}).reduce(function(a,b){return a+(b.correct||0)},0);
+  var totalProb = hist.filter(function(h){return h.type==='study'}).reduce(function(a,b){return a+(b.count||0)},0);
+  var totalCorr = hist.filter(function(h){return h.type==='study'}).reduce(function(a,b){return a+(b.correct||0)},0);
+  var accRate = totalProb > 0 ? Math.round((totalCorr/totalProb)*100) : 0;
+  var odapTotal = S.odapNote?S.odapNote.length:0;
+  var odapUnsolved = S.odapNote?S.odapNote.filter(function(n){return !n.solved;}).length:0;
+  var cardHtml = function(title, val, i, c, type) {
+    return '<div class="card" style="padding:16px;cursor:pointer" onclick="openDashDetail(&apos;'+type+'&apos;)">'
+      +'<div style="width:32px;height:32px;border:1px solid '+c+';border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><i class="ti '+i+'" style="font-size:20px;color:'+c+'"></i></div>'
+      +'<div style="font-size:22px;font-weight:900;color:'+c+';margin-bottom:4px">'+val+'</div>'
+      +'<div style="font-size:12px;color:var(--gray);margin-bottom:10px">'+title+'</div>'
+      +'<div style="font-size:11px;color:var(--mint-d);font-weight:500">클릭해서 자세히 보기 →</div>'
+      +'</div>';
+  };
+  var days=['월','화','수','목','금','토','일'];
+  var chartBars = days.map(function(d, idx){
+    var isToday = idx === 6;
+    var h = isToday ? 5 : (Math.random()*40+10);
+    var c = isToday ? '#E74C3C' : '#A8E6E2';
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:100%;height:60px;display:flex;align-items:flex-end;justify-content:center"><div style="width:80%;background:'+c+';height:'+h+'%;border-radius:4px 4px 0 0;transition:all 0.5s"></div></div><div style="font-size:10px;color:'+(isToday?'#E74C3C':'var(--gray)')+';font-weight:'+(isToday?700:400)+'">'+d+'</div></div>';
+  }).join('');
+  return '<div style="display:flex;flex-direction:column;gap:12px">'
+    +'<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">'
+    +cardHtml('오늘 푼 문제', todaySolved+'문제', 'ti-math', '#FF6B6B', 'today')
+    +cardHtml('누적 정답률', accRate+'%', 'ti-chart-pie', '#4ECDC4', 'rate')
+    +cardHtml('누적 크레딧', (S.credits||0).toLocaleString()+'원', 'ti-coin', '#F7B731', 'credit')
+    +cardHtml('오답노트', odapTotal+'개 ('+odapUnsolved+'미해결)', 'ti-notes', '#E74C3C', 'odap')
+    +'</div>'
+    +'<div class="card" style="padding:16px"><div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:16px"><i class="ti ti-calendar"></i> 이번 주 학습 현황</div>'
+    +'<div style="display:flex;gap:4px;border-bottom:1px solid var(--border);padding-bottom:4px">'+chartBars+'</div>'
+    +'</div></div>';
+}
+function openDashDetail(type) {
+  var title = '', content = '';
+  var btn = '<button class="btn btn-r" onclick="resetHistory(&apos;'+type+'&apos;)" style="margin-top:16px;flex:1"><i class="ti ti-trash"></i> 전체 초기화</button>';
+  if(type === 'today') {
+    title = '오늘 푼 문제 상세';
+    var hist = (S.studyHistory||[]).filter(function(h){return h.date===new Date().toLocaleDateString('ko-KR') && h.type==='study'});
+    content = hist.length ? hist.map(function(h){return '<div style="padding:10px;border-bottom:1px solid #eee;font-size:13px">['+(h.subject||'학습')+'] '+(h.unit||'단원')+' : '+(h.count||0)+'문제 중 '+(h.correct||0)+'개 정답</div>'}).join('') : '<div style="padding:20px;text-align:center;color:#888">오늘 푼 기록이 없습니다.</div>';
+  } else if(type === 'rate') {
+    title = '누적 정답률 상세';
+    var hist = (S.studyHistory||[]).filter(function(h){return h.type==='study'});
+    content = hist.length ? hist.map(function(h){var rt = h.count ? Math.round((h.correct/h.count)*100) : 0;var cColor = rt >= 80 ? 'var(--mint)' : (rt >= 50 ? 'var(--amber-d)' : 'var(--coral)');return '<div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #eee;font-size:13px;align-items:center"><div><div style="color:var(--navy);font-weight:700">['+(h.subject||'학습')+'] '+(h.unit||'단원')+'</div><div style="color:#888;font-size:11px;margin-top:2px">'+(h.date||'')+'</div></div><div style="font-weight:900;color:'+cColor+';font-size:16px">'+rt+'% <span style="font-size:11px;font-weight:400;color:var(--gray)">('+(h.correct||0)+'/'+(h.count||0)+')</span></div></div>';}).join('') : '<div style="padding:20px;text-align:center;color:#888">누적 기록이 없습니다.</div>';
+  } else if(type === 'credit') {
+    title = '크레딧 적립/사용 누적 내역';
+    var hist = [...(S.studyHistory||[])].reverse();
+    content = hist.length ? hist.map(function(h){var amt = h.amount ? (h.amount>0?'+'+h.amount:h.amount) : ('+'+((h.correct||0)*S.creditPerQ));var color = String(amt).indexOf('+')>-1 ? 'var(--mint-d)' : 'var(--coral)';var desc = h.type==='reward' ? h.name : ((h.subject||'학습')+' 보상');return '<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #eee;font-size:13px"><div><div style="color:var(--navy);font-weight:500">'+desc+'</div><div style="color:#888;font-size:11px">'+(h.date||'')+'</div></div><div style="color:'+color+';font-weight:700">'+amt+'원</div></div>';}).join('') : '<div style="padding:20px;text-align:center;color:#888">기록이 없습니다.</div>';
+  } else if(type === 'odap') {
+    title = '누적 오답노트 기록';
+    var odap = S.odapNote||[];
+    content = odap.length ? odap.map(function(n){var stat = n.solved ? '<span class="tag tm" style="font-size:10px">해결됨</span>' : '<span class="tag tr" style="font-size:10px">미해결</span>';return '<div style="padding:12px;border-bottom:1px solid #eee;font-size:13px"><div><strong style="color:var(--navy)">['+n.unit+']</strong> '+stat+'</div><div style="color:var(--gray);font-size:11px;margin-top:6px;line-height:1.4">내가 쓴 오답: <span style="color:var(--coral);text-decoration:line-through">'+n.wrongAns+'</span><br>정확한 정답: <span style="color:var(--mint);font-weight:700">'+n.ans+'</span></div></div>';}).join('') : '<div style="padding:20px;text-align:center;color:#888">오답노트가 없습니다.</div>';
+  }
+  openModal('<div class="modal-title">'+title+'</div><div style="max-height:55vh;overflow-y:auto;background:#fafaf8;border-radius:10px;padding:4px">'+content+'</div><div style="display:flex;gap:8px">'+btn+'<button class="btn btn-g" onclick="closeModal()" style="margin-top:16px;flex:1">닫기</button></div>');
+}
+function resetHistory(type) {
+  if(!confirm('⚠️ 정말 이 항목의 누적 기록을 전체 초기화 하시겠습니까?\n삭제 후에는 복구할 수 없습니다.')) return;
+  if(type === 'today' || type === 'rate') { S.studyHistory = (S.studyHistory||[]).filter(function(h){return h.type!=='study'}); }
+  else if(type === 'credit') { S.studyHistory = []; S.credits = 0; }
+  else if(type === 'odap') { S.odapNote = []; }
+  saveState(); closeModal(); render(); toast('♻️ 기록이 깔끔하게 초기화 되었습니다.');
+}
+window.openDashDetail=openDashDetail; window.resetHistory=resetHistory;
+
+function adminTabGrade(){
+  return '<div class="card" style="border-color:var(--coral-l);display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:13px;font-weight:500;color:var(--navy)"><i class="ti ti-bell"></i> 채점 대기 중</div><div style="font-size:11px;color:var(--gray)">'+S.mathGrade+' '+S.mathUnit+' · '+S.problems.length+'문제</div></div><button class="btn btn-c" onclick="go(&apos;adminGrade&apos;)" style="width:auto;padding:9px 14px;font-size:12px">채점하기</button></div>';
+}
+
+function adminTabSch(){
+  var schRows='';
+  if(!S.schedules||!S.schedules.length){ schRows='<div style="text-align:center;padding:24px;color:var(--gray);font-size:13px"><i class="ti ti-calendar-off" style="font-size:36px;display:block;margin-bottom:8px;opacity:.4"></i>스케줄이 없어요. 버튼으로 추가해보세요!</div>'; }
+  else { schRows=S.schedules.map(function(s){var c=s.subj==='영어'?'var(--mint)':'var(--coral)';return '<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:15px;font-weight:700;color:'+c+'">'+s.label+'</div><div style="font-size:11px;color:var(--gray)">'+s.subj+' · '+(s.grade||'중1')+' · '+s.count+(s.subj.includes('수학')?'문제':'단어')+'</div></div><div style="display:flex;gap:6px;align-items:center"><span class="tag '+(s.subj==='영어'?'tm':(s.subj==='영어문법'?'ta':'tc'))+'" style="font-size:10px">'+s.time+'</span><button onclick="deleteSchedule('+s.id+')" style="background:#FCEBEB;color:#A32D2D;border:.5px solid #F7C1C1;border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:inherit"><i class="ti ti-trash"></i></button></div></div>';}).join(''); }
+  var codeDigits=(S.emergencyCode||'000000').split('').slice(0,8).map(function(d){return '<div style="flex:1;min-width:24px;background:var(--gray-l);border-radius:6px;padding:8px 0;text-align:center;font-size:18px;font-weight:700;color:var(--navy)">'+d+'</div>';}).join('');
+  return '<div style="display:flex;flex-direction:column;gap:8px"><button class="btn btn-c" onclick="openAddScheduleModal()"><i class="ti ti-plus"></i> 새 스케줄 추가</button>'+schRows+'<div class="card" style="padding:14px"><div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:10px"><i class="ti ti-lock"></i> 긴급 해제 코드</div><div style="display:flex;gap:5px;margin-bottom:8px">'+codeDigits+'</div><button class="btn btn-g" onclick="openEditCodeModal()" style="font-size:12px"><i class="ti ti-edit"></i> 긴급 해제 코드 변경</button></div></div>';
+}
+
+function adminTabReward(){
+  var rewardRows='';
+  if(!S.rewards||!S.rewards.length){ rewardRows='<div style="text-align:center;padding:24px;color:var(--gray);font-size:13px"><i class="ti ti-gift" style="font-size:36px;display:block;margin-bottom:8px;opacity:.4"></i>아직 보상이 없어요!</div>'; }
+  else { rewardRows=S.rewards.map(function(r){var p2=Math.min((S.credits||0)/r.price*100,100);return '<div class="card" style="border-color:'+(p2>=100?'var(--mint-l)':'var(--border)')+'"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:40px;border-radius:10px;background:'+(p2>=100?'var(--mint-ll)':'var(--gray-l)')+';display:flex;align-items:center;justify-content:center;font-size:22px">'+r.icon+'</div><div><div style="font-size:14px;font-weight:600;color:var(--navy)">'+r.name+'</div><div style="font-size:12px;color:var(--coral);font-weight:500">'+r.price.toLocaleString()+'원 ('+p2.toFixed(0)+'%)</div></div></div><div style="display:flex;gap:5px">'+(p2>=100?'<button onclick="giveReward('+r.id+')" style="background:var(--mint);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600">🎉 지급!</button>':'')+'<button onclick="deleteReward('+r.id+')" style="background:#FCEBEB;color:#A32D2D;border:.5px solid #F7C1C1;border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:inherit"><i class="ti ti-trash"></i></button></div></div><div class="pt"><div class="pf" style="width:'+p2+'%;background:var(--coral)"></div></div><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-top:3px"><span>'+(S.credits||0).toLocaleString()+'원 적립</span><span>'+(r.price-Math.min(S.credits||0,r.price)).toLocaleString()+'원 남음</span></div></div>';}).join(''); }
+  return '<div style="display:flex;flex-direction:column;gap:8px"><div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:var(--gray)">정답 1개당 크레딧</div><div style="font-size:26px;font-weight:700;color:var(--coral)">'+(S.creditPerQ||500).toLocaleString()+'원</div></div><button onclick="openCreditModal()" style="background:var(--gray-l);color:var(--gray);border:.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:inherit"><i class="ti ti-edit"></i> 변경</button></div><div class="card" style="background:#FFF8F0;padding:12px;text-align:center;border-color:var(--coral-l)"><div style="font-size:11px;color:var(--gray);margin-bottom:2px">하은이 현재 크레딧</div><div style="font-size:28px;font-weight:900;color:var(--coral)">'+(S.credits||0).toLocaleString()+'원</div></div>'+rewardRows+'<button class="btn btn-c" onclick="openAddRewardModal()"><i class="ti ti-plus"></i> 새 보상 추가</button><button onclick="resetAllCredits()" style="background:#FCEBEB;color:#A32D2D;border:.5px solid #F7C1C1;border-radius:10px;padding:12px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-refresh"></i> 전체 크레딧 리셋</button></div>';
+}
+
+function adminTabOdap(){
+  var odap=S.odapNote||[];
+  if(!odap.length) return '<div style="text-align:center;padding:36px 20px;color:var(--gray)"><i class="ti ti-notes" style="font-size:44px;display:block;margin-bottom:10px;opacity:.4"></i><div style="font-size:14px;font-weight:500;color:var(--navy);margin-bottom:4px">오답노트가 비어있어요</div><div style="font-size:12px">하은이가 오답을 내면 자동으로 저장됩니다</div></div>';
+  var un=odap.filter(function(n){return !n.solved;}); var sv=odap.filter(function(n){return n.solved;});
+  var unRows=un.map(function(n){return '<div class="card" style="border-color:#F7C1C1"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px"><div style="display:flex;gap:4px;flex-wrap:wrap"><span class="tag tm" style="font-size:10px">'+n.unit+'</span><span class="tag tr" style="font-size:10px">'+n.retries+'회 오답</span></div><span class="ub">미해결</span></div><div style="font-size:12px;color:var(--navy);white-space:pre-line;margin-bottom:7px">'+n.q+'</div><div style="display:flex;gap:10px;font-size:11px"><div><span style="color:var(--gray)">오답: </span><span style="color:var(--coral);text-decoration:line-through">'+n.wrongAns+'</span></div><div><span style="color:var(--gray)">정답: </span><span style="color:var(--mint);font-weight:700">'+n.ans+'</span></div></div><div style="font-size:10px;color:var(--gray);margin-top:5px"><i class="ti ti-calendar"></i> '+n.date+'</div></div>';}).join('');
+  return '<div style="display:flex;flex-direction:column;gap:8px"><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><div class="card" style="text-align:center;padding:12px;border-color:#F7C1C1"><div style="font-size:22px;font-weight:700;color:var(--coral)">'+un.length+'</div><div style="font-size:10px;color:var(--gray)">미해결</div></div><div class="card" style="text-align:center;padding:12px;border-color:var(--mint-l)"><div style="font-size:22px;font-weight:700;color:var(--mint)">'+sv.length+'</div><div style="font-size:10px;color:var(--gray)">해결완료</div></div></div>'+unRows+'</div>';
+}
+
+function adminTabSettings(){
+  if(!S.settings) S.settings = {apiKey:'', mathModel:'gemini-1.5-flash', engModel:'gemini-1.5-flash'};
+  var grades=Object.keys(MATH_UNITS);
+  var mathUnits=MATH_UNITS[S.mathGrade||'중1']||[];
+  var audioState = S.cheerAudio ? '<div style="color:var(--mint);font-size:12px;margin-bottom:8px;font-weight:700">🎙️ 부모님 진짜 목소리가 저장되어 있습니다!</div>' : '<div style="color:var(--gray);font-size:12px;margin-bottom:8px">저장된 목소리가 없습니다 (기본 AI 음성으로 대체됨)</div>';
+  return '<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<div class="card"><div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px"><i class="ti ti-microphone" style="color:var(--coral)"></i> 👨‍👩‍👧 부모님 칭찬 목소리 녹음</div>'+audioState
+    +'<div style="display:flex;gap:8px;margin-bottom:8px"><button id="btn-rec-start" class="btn btn-r" onclick="startRecording()" style="flex:1"><i class="ti ti-player-record"></i> 녹음 시작</button><button id="btn-rec-stop" class="btn btn-g" onclick="stopRecording()" style="flex:1" disabled>■ 녹음 중지</button></div>'
+    +'<div style="display:flex;gap:8px"><button class="btn btn-m" onclick="playCheerAudio()" style="flex:1"><i class="ti ti-player-play"></i> 들어보기</button><button class="btn btn-g" onclick="deleteCheerAudio()" style="flex:1"><i class="ti ti-trash"></i> 삭제</button></div>'
+    +'<p style="font-size:11px;color:var(--gray);margin-top:10px">하은이가 모든 문제를 맞추고 완료 화면을 띄울 때 이 목소리가 자동으로 나옵니다!</p></div>'
+    +'<div class="card"><div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px"><i class="ti ti-math" style="color:var(--coral)"></i> 하은이 수학 기본 설정</div>'
+    +'<div class="modal-field"><label>학년</label><select id="set-m-grade" onchange="S.mathGrade=this.value;render()">'+grades.map(function(g){return '<option value="'+g+'" '+(S.mathGrade===g?'selected':'')+'>'+g+'</option>'}).join('')+'</select></div>'
+    +'<div class="modal-field"><label>단원</label><select id="set-m-unit">'+mathUnits.map(function(u){return '<option value="'+u+'" '+(S.mathUnit===u?'selected':'')+'>'+u+'</option>'}).join('')+'</select></div>'
+    +'<div class="modal-field"><label>난이도</label><select id="set-m-diff"><option value="하" '+(S.mathDiff==='하'?'selected':'')+'>하</option><option value="중" '+(S.mathDiff==='중'?'selected':'')+'>중</option><option value="상" '+(S.mathDiff==='상'?'selected':'')+'>상</option></select></div>'
+    +'<div class="modal-field"><label>문제 수 (1~50)</label><input type="number" id="set-m-count" value="'+(S.mathCount||5)+'" min="1" max="50" style="width:100%;padding:11px;border-radius:10px;border:.5px solid var(--border)"></div></div>'
+    +'<div class="card"><div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px"><i class="ti ti-language" style="color:var(--mint)"></i> 하은이 영어 기본 설정</div>'
+    +'<div class="modal-field"><label>학년</label><select id="set-e-grade"><option value="초6" '+(S.engGrade==='초6'?'selected':'')+'>초등학교 6학년</option><option value="중1" '+(S.engGrade==='중1'?'selected':'')+'>중학교 1학년</option><option value="중2" '+(S.engGrade==='중2'?'selected':'')+'>중학교 2학년</option><option value="중3" '+(S.engGrade==='중3'?'selected':'')+'>중학교 3학년</option></select></div>'
+    +'<div class="modal-field"><label>학습 유형</label><select id="set-e-type"><option value="word" '+(S.engType==='word'?'selected':'')+'>영단어 (STT발음)</option><option value="grammar" '+(S.engType==='grammar'?'selected':'')+'>영어 문법</option></select></div>'
+    +'<div class="modal-field"><label>문항 수 (1~50)</label><input type="number" id="set-e-count" value="'+(S.engCount||10)+'" min="1" max="50" style="width:100%;padding:11px;border-radius:10px;border:.5px solid var(--border)"></div></div>'
+    +'<div class="card"><div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px"><i class="ti ti-api-app" style="color:var(--amber-d)"></i> 구글 AI 연동 설정 (무료)</div>'
+    +'<div class="modal-field"><label>🔑 Google Gemini API Key <span style="font-size:10px;color:var(--gray)">(이미지 파싱용)</span></label><input type="password" id="set-api" value="'+(S.settings.apiKey||'')+'" placeholder="AIzaSy..." style="margin-bottom:8px"></div>'
+    +'<div class="modal-field"><label>⚡ Groq API Key <span style="font-size:10px;color:var(--mint-d)">(PDF 파싱 추천 · 무료)</span></label>'
+    +'<input type="password" id="set-groq" value="'+(S.settings.groqApiKey||'')+'" placeholder="gsk_..." style="margin-bottom:4px">'
+    +'<div class="modal-field"><label>🤖 Claude API Key <span style="font-size:10px;color:#7c3aed">(PDF 파싱 최고정확도 · 소액유료)</span></label>'
+    +'<input type="password" id="set-claude" value="'+(S.settings.claudeApiKey||'')+'" placeholder="sk-ant-..." style="margin-bottom:4px">'
+    +'<div style="background:#f5f3ff;border-radius:8px;padding:8px 10px;font-size:11px;color:#7c3aed;margin-bottom:8px">'
+    +'🔗 발급: <b>console.anthropic.com</b> → API Keys<br>'
+    +'✅ PDF 2단 컬럼·수식 완벽 인식<br>'
+    +'💰 문제집 1챕터 파싱 약 15~45원</div></div>'
+    +'<div style="background:var(--mint-ll);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--mint-d);margin-bottom:8px">'
+    +'🔗 무료 발급: <b>console.groq.com</b> → API Keys → Create<br>'
+    +'✅ Llama 3.3 70B · 한국어 수학 문제 파싱 최적화<br>'
+    +'📌 Groq 키가 있으면 PDF 파싱에 Groq 우선 사용</div></div>'
+    +'<div class="modal-field"><label>🤖 수학/영어/문제은행 파싱 AI 모델</label><select id="set-math" style="margin-bottom:16px"><option value="gemini-1.5-flash" '+(S.settings.mathModel==='gemini-1.5-flash'?'selected':'')+'>Gemini 1.5 Flash (기본 권장)</option><option value="gemini-1.5-pro" '+(S.settings.mathModel==='gemini-1.5-pro'?'selected':'')+'>Gemini 1.5 Pro (고성능·PDF 파싱 추천)</option><option value="gemini-3.1-flash-lite" '+(S.settings.mathModel==='gemini-3.1-flash-lite'?'selected':'')+'>Gemini 3.1 Flash Lite (신규 초경량 모델)</option></select></div>'
+    +'<button class="btn btn-c" onclick="saveAdminSettings()"><i class="ti ti-device-floppy"></i> 모든 설정 저장하기</button></div></div>';
+}
+
+function saveAdminSettings(){
+  var apiEl = document.getElementById('set-api'); var mathEl = document.getElementById('set-math');
+  if(apiEl && mathEl){ if(!S.settings) S.settings = {}; S.settings.apiKey = apiEl.value.trim(); S.settings.mathModel = mathEl.value; S.settings.engModel = mathEl.value; }
+  var groqEl = document.getElementById('set-groq');
+  if(groqEl) S.settings.groqApiKey = groqEl.value.trim();
+  var claudeEl = document.getElementById('set-claude');
+  if(claudeEl) S.settings.claudeApiKey = claudeEl.value.trim();
+  var mg=document.getElementById('set-m-grade'), mu=document.getElementById('set-m-unit'), md=document.getElementById('set-m-diff'), mc=document.getElementById('set-m-count');
+  if(mg) S.mathGrade=mg.value; if(mu) S.mathUnit=mu.value; if(md) S.mathDiff=md.value; if(mc) S.mathCount=parseInt(mc.value)||5;
+  var eg=document.getElementById('set-e-grade'), et=document.getElementById('set-e-type'), ec=document.getElementById('set-e-count');
+  if(eg) S.engGrade=eg.value; if(et) S.engType=et.value; if(ec) S.engCount=parseInt(ec.value)||10;
+  saveState(); toast('✅ 부모님 맞춤 설정이 완료되었습니다!'); render();
+}
+
+function openAddScheduleModal(){window._schedSubj='수학';openModal('<div class="modal-title">새 스케줄 추가 <button class="modal-close" onclick="closeModal()">✕</button></div><div class="modal-field"><label>과목</label><div style="display:flex;gap:8px"><button id="subj-math" onclick="schedModalSubj(&apos;수학&apos;)" style="flex:1;padding:10px;border:1.5px solid var(--coral);background:var(--coral-ll);border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;color:#C0392B;font-weight:700">수학</button><button id="subj-eng" onclick="schedModalSubj(&apos;영어&apos;)" style="flex:1;padding:10px;border:1.5px solid var(--border);background:var(--white);border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;color:var(--gray)">영단어</button><button id="subj-grammar" onclick="schedModalSubj(&apos;영어문법&apos;)" style="flex:1;padding:10px;border:1.5px solid var(--border);background:var(--white);border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;color:var(--gray)">영문법</button></div></div><div class="modal-field"><label>학년</label><select id="sched-grade"><option>중1</option><option>중2</option><option>중3</option></select></div><div class="modal-field"><label>시간</label><input type="time" id="sched-time" value="19:00" style="width:100%;padding:11px 13px;border:.5px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;outline:none"></div><div class="modal-field"><label id="sched-count-label">문제 수</label><input type="number" id="sched-count" value="5" min="1" max="50" style="width:100%;padding:11px 13px;border:.5px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;outline:none"></div><div class="modal-row" style="margin-top:16px"><button class="btn btn-g" onclick="closeModal()">취소</button><button class="btn btn-c" onclick="saveNewSchedule()">저장하기</button></div>');}
+function schedModalSubj(subj){window._schedSubj=subj;var mb=document.getElementById('subj-math'),eb=document.getElementById('subj-eng'),gb=document.getElementById('subj-grammar'),lb=document.getElementById('sched-count-label');if(mb&&eb&&gb){mb.style.cssText=eb.style.cssText=gb.style.cssText='flex:1;padding:10px;border:1.5px solid var(--border);background:var(--white);border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;color:var(--gray)';if(subj==='수학')mb.style.cssText='flex:1;padding:10px;border:1.5px solid var(--coral);background:var(--coral-ll);border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;color:#C0392B;font-weight:700';else if(subj==='영어')eb.style.cssText='flex:1;padding:10px;border:1.5px solid var(--mint);background:var(--mint-ll);border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;color:var(--mint-d);font-weight:700';else if(subj==='영어문법')gb.style.cssText='flex:1;padding:10px;border:1.5px solid var(--amber);background:var(--amber-ll);border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;color:var(--amber-d);font-weight:700';}if(lb)lb.textContent=(subj==='영어')?'단어 수':'문제 수';}
+function saveNewSchedule(){var te=document.getElementById('sched-time'),ge=document.getElementById('sched-grade'),ce=document.getElementById('sched-count');if(!te||!ge||!ce){toast('⚠️ 입력 오류');return;}var t=te.value||'19:00',h=parseInt(t.split(':')[0]),ampm=h>=12?'오후':'오전',h12=h>12?h-12:h===0?12:h,label=ampm+' '+h12+'시';if(!S.schedules)S.schedules=[];S.schedules.push({id:Date.now(),time:t,label:label,subj:window._schedSubj||'수학',grade:ge.value,count:parseInt(ce.value)||5,active:true});saveState();closeModal();render();toast('✅ 스케줄 추가됨!');}
+function deleteSchedule(id){confirmModal('이 스케줄을 삭제할까요?',function(){S.schedules=S.schedules.filter(function(s){return s.id!==id;});saveState();render();toast('🗑️ 스케줄 삭제됨');});}
+function openEditCodeModal(){openModal('<div class="modal-title">긴급 해제 코드 변경 <button class="modal-close" onclick="closeModal()">✕</button></div><p style="font-size:13px;color:var(--gray);margin-bottom:16px;line-height:1.6">하은이가 긴급 상황 시 이 코드를 입력하면<br>학습 잠금이 해제됩니다.</p><div class="modal-field"><label>새 코드 (숫자 4~8자리)</label><input type="text" id="new-code" value="'+(S.emergencyCode||'000000')+'" placeholder="숫자만 입력" maxlength="8" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,\'\')"></div><div class="modal-row" style="margin-top:16px"><button class="btn btn-g" onclick="closeModal()">취소</button><button class="btn btn-c" onclick="saveNewCode()">변경하기</button></div>');}
+function saveNewCode(){var el=document.getElementById('new-code');if(!el||el.value.length<4){toast('⚠️ 4자리 이상 입력하세요');return;}S.emergencyCode=el.value;saveState();closeModal();render();toast('🔑 코드 변경 완료!');}
+function openCreditModal(){openModal('<div class="modal-title">크레딧 단가 변경 <button class="modal-close" onclick="closeModal()">✕</button></div><p style="font-size:13px;color:var(--gray);margin-bottom:16px;line-height:1.6">정답 1개를 맞출 때마다 이 금액만큼 크레딧이 쌓여요!</p><div class="modal-field"><label>정답 1개당 크레딧 (원)</label><input type="number" id="credit-per-q" value="'+(S.creditPerQ||500)+'" min="100" max="10000" step="100" style="width:100%;padding:11px 13px;border:.5px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;outline:none"></div><div class="modal-row" style="margin-top:16px"><button class="btn btn-g" onclick="closeModal()">취소</button><button class="btn btn-c" onclick="saveCreditPerQ()">저장</button></div>');}
+function saveCreditPerQ(){var el=document.getElementById('credit-per-q');if(!el||parseInt(el.value)<100){toast('⚠️ 100원 이상 입력하세요');return;}S.creditPerQ=parseInt(el.value);saveState();closeModal();render();toast('✅ 크레딧 단가 변경됨');}
+function openAddRewardModal(){openModal('<div class="modal-title">새 보상 추가 <button class="modal-close" onclick="closeModal()">✕</button></div><div class="modal-field"><label>보상 이름</label><input type="text" id="rwd-name" placeholder="예: 치킨 파티"></div><div class="modal-field"><label>목표 금액 (원)</label><input type="number" id="rwd-price" placeholder="예: 20000" min="1000" style="width:100%;padding:11px 13px;border:.5px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;outline:none"></div><div class="modal-field"><label>아이콘(이모지)</label><input type="text" id="rwd-icon" value="🎁" style="width:100%;padding:11px 13px;border:.5px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;outline:none"></div><div class="modal-row" style="margin-top:16px"><button class="btn btn-g" onclick="closeModal()">취소</button><button class="btn btn-c" onclick="saveNewReward()">추가하기</button></div>');}
+function saveNewReward(){var name=(document.getElementById('rwd-name')||{}).value;var price=parseInt((document.getElementById('rwd-price')||{}).value);var icon=(document.getElementById('rwd-icon')||{}).value||'🎁';if(!name||!name.trim()){toast('⚠️ 이름을 입력하세요');return;}if(!price||price<1000){toast('⚠️ 1,000원 이상 입력하세요');return;}if(!S.rewards)S.rewards=[];S.rewards.push({id:Date.now(),name:name.trim(),price:price,icon:icon.trim()||'🎁'});saveState();closeModal();render();toast('🎁 보상 추가됨!');}
+function deleteReward(id){confirmModal('이 보상을 삭제할까요?',function(){S.rewards=S.rewards.filter(function(r){return r.id!==id;});saveState();render();toast('🗑️ 보상 삭제됨');});}
+function giveReward(id){var r=(S.rewards||[]).find(function(x){return x.id===id;});if(!r)return;confirmModal('🎉 '+r.name+' 보상을 지급하고\n크레딧 '+r.price.toLocaleString()+'원을 차감할까요?',function(){S.credits=Math.max(0,(S.credits||0)-r.price);if(!S.studyHistory)S.studyHistory=[];S.studyHistory.push({type:'reward',name:r.name,amount:-r.price,date:new Date().toLocaleDateString('ko-KR')});saveState();render();toast('🎉 지급 완료!');});}
+function resetAllCredits(){confirmModal('⚠️ 전체 크레딧을 0으로 리셋할까요?',function(){S.credits=0;if(!S.studyHistory)S.studyHistory=[];S.studyHistory.push({type:'reset',date:new Date().toLocaleDateString('ko-KR')});saveState();render();toast('🔄 크레딧 리셋 완료');});}
+
+/* ================================================
+   PART 9: 전역 노출 & 렌더링
+   ================================================ */
+function render(){
+  updateNav();
+  var screens={
+    login:screenLogin, motivational:screenMotivational, studyChoice:screenStudyChoice,
+    study:screenStudy, waiting:screenWaiting, adminGrade:screenAdminGrade, retry:screenRetry, retryWaiting:screenRetryWaiting,
+    adminRetry:screenAdminRetry, approved:screenApproved, studentHome:screenStudentHome, admin:screenAdmin, engStudy:screenEngStudy
+  };
+  var sw=document.getElementById('sw'); if(!sw) return;
+  var fn=screens[S.screen];
+  sw.innerHTML=fn?fn():'<div style="padding:40px;text-align:center;color:var(--gray)">화면을 찾을 수 없어요</div>';
+  sw.scrollTop=0;
+}
+
+window.go=go; window.openModal=openModal; window.closeModal=closeModal; window.toast=toast; window.confirmModal=confirmModal;
+window.navBack=navBack; window.navForward=navForward; window.loginAs=loginAs; window.goStudyChoice=goStudyChoice;
+window.genProblems=genProblems; window.genReviewProblems=genReviewProblems; window.useHint=useHint; window.useRHint=useRHint;
+window.doApprove=doApprove; window.doReturn=doReturn; window.doRetryApprove=doRetryApprove; window.doRetryReturn=doRetryReturn;
+window.speak=speak; window.cheerUp=cheerUp; window.startSpeechRecognition=startSpeechRecognition; window.startCassette=startCassette;
+window.stopCassette=stopCassette; window.genEngWords=genEngWords; window.saveState=saveState; window.dismissLock=dismissLock;
+window.startQuoteTimer=startQuoteTimer; window.saveAdminSettings=saveAdminSettings; window.render=render;
+window.openAddScheduleModal=openAddScheduleModal; window.schedModalSubj=schedModalSubj; window.saveNewSchedule=saveNewSchedule;
+window.deleteSchedule=deleteSchedule; window.openEditCodeModal=openEditCodeModal; window.saveNewCode=saveNewCode;
+window.openCreditModal=openCreditModal; window.saveCreditPerQ=saveCreditPerQ; window.openAddRewardModal=openAddRewardModal;
+window.saveNewReward=saveNewReward; window.deleteReward=deleteReward; window.giveReward=giveReward; window.resetAllCredits=resetAllCredits;
+
+async function init() { render(); }
+init();
+
+if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(function(reg){ console.log('서비스워커 등록 성공'); })
+      .catch(function(err){ console.log('서비스워커 등록 실패', err); });
+  });
+}
 </script>
 </body>
 </html>
