@@ -1047,7 +1047,7 @@ async function testA_GeminiPDFDirect(pdfBase64, unit) {
     + '[{"unit":"' + unit + '","q":"문제 전체 내용","ans":"","hints":[],"exp":"","diff":"중"}]';
   try {
     var res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=' + S.settings.apiKey,
       { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           contents:[{ parts:[
